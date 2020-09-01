@@ -55,7 +55,7 @@ Data authentication is part of the encryption process and refers to the message 
 
 ### Further considerations
 
-VPN servers may use static or dynamic [IP addresses](#ip-address). The later are the most common used. There are pros and cons for both approaches, and they can be important to the user depending on the use given to the VPN (and the budget available). 
+VPN servers [^28] may use static or dynamic [IP addresses](#ip-address). The later are the most common used. There are pros and cons for both approaches, and they can be important to the user depending on the use given to the VPN (and the budget available). 
 
 - **Dynamic [IP address](#ip-address)**
   - Pros - They provide greater anonymity for public WiFi hotspots, for they implement [NAT](#nat) and offer a wider range of [IPs](#ip-address).
@@ -64,7 +64,7 @@ VPN servers may use static or dynamic [IP addresses](#ip-address). The later are
   - Pros - Unique [IP](#ip-address) for user. Harder to block by ISP or Network Administrators, since they use their own ports.
   - Cons - Expensive.
 
-Some VPN servers offer built-in [DNS](#dns) protection. This happens because there is a well-know flaw in some operative systems that, despite having routed the traffic through a VPN server, keep contacting websites using their original [IP](#ip-address) and [DNS](#dns). This is a treat to your online security, anonymity and usefulness of your VPN. Altough these [DNS](#dns) leaks can be prevented, it can be worth looking for a VPN with built-in protection.
+Some VPN servers [^28] offer built-in [DNS](#dns) protection. This happens because there is a well-know flaw in some operative systems that, despite having routed the traffic through a VPN server [^28], keep contacting websites using their original [IP](#ip-address) and [DNS](#dns). This is a treat to your online security, anonymity and usefulness of your VPN. Altough these [DNS](#dns) leaks can be prevented, it can be worth looking for a VPN with built-in protection.
 
 Notice that using a VPN does not protect you from malicious software. While some VPN providers offer additional protection, most do not. Viruses, spyware and malware can still harm you when you are using a VPN.
 
@@ -73,9 +73,9 @@ Many VPN offer anonymous payment options, like Bitcoin, Altcoins, Alipay, CashU,
 Deep packet inspection (DPI) [^21] or packet sniffing is a type of data processing that inspects in detail the data being sent over a computer network [^16], and usually takes action by blocking, re-routing, or logging it accordingly.  It is used by ISPs, government agencies, and hackers to monitor and retain all of the data transmitted to and from your computer, including confidential and private information. To help customers bypass this, VPN providers are actively implementing modified OpenVPN protocols with added obfuscation layers, which masks VPN traffic away from view of DPI crawls. Check your VPN provider on this topic.
 
 ## Free or Paid VPNs?  
-Free VPN services normally offer slower bandwidth and a smaller server range. It is also important to consider that everyone wants to make a living, so while they claim to be free, they may make money using other means, which, in some cases, compromise the users confidentiality ( see the case of [Hola](#Hola-VPN) in the appendix ).  
+Free VPN services normally offer slower bandwidth and a smaller server [^28] range. It is also important to consider that everyone wants to make a living, so while they claim to be free, they may make money using other means, which, in some cases, compromise the users confidentiality ( see the case of [Hola](#Hola-VPN) in the appendix ).  
 
-A legitimate and reliable paid VPN service offers several advantages, including a much more private environment, authentic guarantees, faster speeds, more servers, more extra features and add-on services, as well as being less likely to log traffic or connection logs. Normally, and given that you pay for them, they are more likely to be safe compared to free services.
+A legitimate and reliable paid VPN service offers several advantages, including a much more private environment, authentic guarantees, faster speeds, more servers [^28], more extra features and add-on services, as well as being less likely to log traffic or connection logs. Normally, and given that you pay for them, they are more likely to be safe compared to free services.
 
 ## Can I be tracked while using a VPN?
 
@@ -83,7 +83,71 @@ Strictly speaking, using a personal VPN does not prevent others from tracking yo
 
 ### Tracking cookies
 
-While using a VPN can hide your [IP address](#ip-address) from the internet, cookies can still track your activity. Tracking [cookies](#cookies) are not blocked by your VPN when browsing the internet, and they are not removed from your system afterwards either. 
+While using a VPN can hide your [IP address](#ip-address) from the internet, [cookies](#cookies) can still track your activity. Tracking [cookies](#cookies) are not blocked by your VPN when browsing the internet, and they are not removed from your system afterwards either. However, your web browser [^27] can do that for you. Every web browser [^27] can block third-party [cookies](#cookies) and remove all of them after the browsing session has finished (when you exit the browser [^27]), and if yours does not, you should think about changing your web browser [^27]. Sometimes this is as simple as browsing in incognito mode [^24].  
+
+A VPN, however, can help in the sense that it will hide from cookies your real [IP address](#ip-address), since the VPN server [^28] is the one connecting to the internet. Therefore, [IP](#ip-address) based identification will not work on you. But all the other information will be there: browsing history, queries performed, preferences...  
+
+### Referrer URLs
+
+A referrer URL is the web address of the previous website where you clicked a link to get to the current website. These can be used for several reasons, and recording your browser [^27] history is one of them. They are often used alongside with [cookies](#cookies), but these are not required in order to use referrer URLs. If someone clicks on a link to `example.org` at `example.com/links.htm`, then `example.org's` visitor log will show `example.com/links.htm` as his referral URL [^25].  
+
+Some web browsers [^27] have an option not to send referral URL information to websites. Generally speaking, VPNs do not do that. Users may also do this manually by copying the link address and pasting it into the browser's [^27] address bar.
+
+### Web beacons
+
+A web beacon is a technique used on web pages and email to unobtrusively (usually invisibly) allow checking that a user has accessed some content [^26]. The first web beacons were small digital image files that were embedded in a web page or email. The image could be as small as a single pixel, and could be of the same color as the background, or completely transparent (thus the name “tracking pixel”). When a user opens the page or email where such an image was embedded, they might not see the image, but their web browser[^27] or email reader would automatically download the image, requiring the user's computer to send a request to the host company's server [^28], where the source image was stored. This request would provide identifying information about the computer, allowing the host to keep track of the user.  
+
+The identifying information provided by the user's computer typically includes its [IP address](#ip-address), the time the request was made, the type of web browser or email reader that made the request, and the existence of [cookies](#cookies) previously sent by the host server. The host server can store all of this information, and associate it with a [session identifier](#session-id) or tracking token that uniquely marks the interaction.
+
+### Browser fingerprinting
+
+A device fingerprint, machine fingerprint or browser fingerprint is information collected about a remote computing device for the purpose of identification. Fingerprints can be used to fully or partially identify individual users or devices even when cookies are turned off [^30].
+
+![device_fingerprint](Images/AreVPNsAnonymus/device_fingerprint.png)
+
+The attributes of the fingerprint depend on the web application, for each of them may use a different set of attributes. For reference, `amiunique.org`[^31] uses the following data to create their fingerprint:
+
+- the User agent header
+- the Accept header
+- the Connection header
+- the Encoding header
+- the Language header
+- the Upgrade Insecure Requests header
+- the Referer header
+- the Cache-Control header
+- the BuildId of the browser
+- the list of plugins
+- the platform
+- the cookies preferences (allowed or not)
+- the Do Not Track preferences (yes, no or not communicated)
+- the timezone
+- the screen resolution and its color depth
+- the use of local storage
+- the use of session storage
+- a picture rendered with the HTML Canvas element
+- a picture rendered with WebGL
+- Supported Audio formats
+- Supported Video formats
+- the presence of AdBlock
+- the list of fonts
+
+Nor VPNs, nor most ad-blockers can protect users from this type of tracking. Some ad-blockers are working on blocking this type tracking by removing the HTML canvas element from a web page when certain conditions are met, for this is usually used for tracking purposes.
+
+### Cookie syncing
+
+The biggest problem [cookies](#cookies) face is that they can only be read on the domain that created them. This means that AdTech companies can’t read cookies created by other AdTech platforms or by the website itself, essentially limiting their effectiveness for advertising purposes on other websites. This is faced by creating a unique identifier (UID) for each user and sharing it with other companies, like a translation table that gathers each companies ID of that user and translates it to a UID.
+
+![cookie_sync](/home/ismael/myRepos/AreVPNsAnonymus/Images/AreVPNsAnonymus/cookie_sync.png)
+
+### Supercookies
+
+Supercookies are not stored in your computer. Instead, an ISP inserts a piece of information unique to a user's connection into the HTTP header. They are injected at the network level as Unique Identifier Headers (UIDH). This means clearing your browser data will not delete that cookie. Blockers can't block it either.
+
+A zombie cookie remains intact as it hides outside of your browser's regular cookie storage. Zombie cookies target local storage, HTML5 storage, RGB color code values, Silverlight storage, and more. That's why they're known as zombie cookies. An advertiser must only find an existing cookie in one of those locations to resurrect the rest.
+
+If an ISP decides to track you with supercookies, there is not really much you can do, except encrypting your traffic ( so that at least, they do not know what you are doing ). This can be done by using HTTPS-only websites, and by using a VPN. However, the last if the safer option.  
+
+
 
 
 # Appendix
@@ -110,7 +174,7 @@ In cryptography, encryption is the process of encoding information. This process
 
 OpenVPN is open-source software (there is a commercial version and a free edition) that implements virtual private network (VPN) techniques to create secure point-to-point or site-to-site connections in routed or bridged configurations and remote access facilities. It uses a custom security protocol that utilizes SSL/TLS for key exchange. It is capable of traversing network address translators (NATs) and firewalls.
 
-OpenVPN allows peers to authenticate each other using pre-shared secret keys, certificates or username/password (this part requires third party modules). When used in a multi client-server [^22] configuration, it allows the server to release an authentication certificate for every client, using signatures and certificate authority. It uses the OpenSSL encryption library extensively, as well as the TLS protocol, and contains many security and control features.
+OpenVPN allows peers to authenticate each other using pre-shared secret keys, certificates or username/password (this part requires third party modules). When used in a multi client-server [^22] configuration, it allows the server [^28] to release an authentication certificate for every client, using signatures and certificate authority. It uses the OpenSSL encryption library extensively, as well as the TLS protocol, and contains many security and control features.
 
 OpenVPN uses the OpenSSL library to provide encryption of both the data and control channels. It lets OpenSSL do all the encryption and authentication work, allowing OpenVPN to use all the ciphers available in the OpenSSL package. It can also use HMAC packet authentication feature to add an additional layer of security. Mbed TLS is available starting from version 2.3 [^6].  
 
@@ -131,7 +195,7 @@ Encryption keys are used to encrypt data. The most common forms of encryption ar
 
 #### IP Address  
 
-An Internet Protocol Address[^15] is a numerical label assigned to each device connected to a computer network[^16] that uses the Internet Protocol[^17] for communication. They server two main functions: identification of a host or network interface and location addressing (transferring information from one place to another) .
+An Internet Protocol Address[^15] is a numerical label assigned to each device connected to a computer network[^16] that uses the Internet Protocol[^17] for communication. They serve two main functions: identification of a host or network interface and location addressing (transferring information from one place to another) .
 
 #### Hola VPN   
 
@@ -139,7 +203,7 @@ Hola, based out of Israel, is mainly a free VPN service. It also offers paid sub
 
 - **Location of their headquarters** - They are located in Israel, outside the 14-Eyes Countries and Jurisdiction [^18]. However, Israel is cooperative with this alliance, where they share all their espionage information.
 
-- **Logging level** - They log the following data: browser type, web pages visited, time spent on this pages, access times and dates. We could say they know nearly everything about your internet activity. They store **usage logs**.
+- **Logging level** - They log the following data: browser [^27] type, web pages visited, time spent on this pages, access times and dates. We could say they know nearly everything about your internet activity. They store **usage logs**.
 - **Personal data** - They store your [IP address](#ip-address), name, email and they may share it “subsidiaries and affiliated companies".
 - **Encryption level** -  Non-existent. Hola VPN uses a proxy tunnel, transmitting information in plain text.
 
@@ -152,7 +216,7 @@ Peer-to-peer (P2P) computing or networking is a distributed application architec
 
 ![P2P-network](Images/AreVPNsAnonymus/P2P-network.png)
 
-Peers make a portion of their resources, such as processing power, disk storage or network bandwidth, directly available to other network participants, without the need for central coordination by servers or stable hosts. Peers are both suppliers and consumers of resources, in contrast to the traditional client-server [^22] model in which the consumption and supply of resources is divided [^13].
+Peers make a portion of their resources, such as processing power, disk storage or network bandwidth, directly available to other network participants, without the need for central coordination by servers [^28] or stable hosts. Peers are both suppliers and consumers of resources, in contrast to the traditional client-server [^22] model in which the consumption and supply of resources is divided [^13].
 
 #### NAT  
 
@@ -166,11 +230,17 @@ The Domain Name System (DNS) [^20] is a naming system for devices connected to a
 
 #### Cookies
 
-An HTTP cookie is a small piece of data stored on the user's computer by the web browser while browsing a website. Cookies were designed to be a reliable mechanism for websites to remember stateful information, as the HTTP protocol does not. However, not all cookies have innocent intentions. Tracking cookies, and specially third-party tracking cookies are commonly used as ways to compile long-term records of individuals' browsing histories, and therefore can violate the users' privacy online [^23].
+An HTTP cookie is a small piece of data stored on the user's computer by the web browser [^27] while browsing a website. Cookies were designed to be a reliable mechanism for websites to remember stateful information, as the HTTP protocol does not. However, not all cookies have innocent intentions. Tracking cookies, and specially third-party tracking cookies are commonly used as ways to compile long-term records of individuals' browsing histories, and therefore can violate the users' privacy online [^23].
 
-Normally a cookie's domain attribute will match the domain shown in the web browser's address bar. Third-party cookies do not, since they belong to a different domain.  This sort of cookie typically appears when a web page features content from external websites, as ads.
+Normally a cookie's domain attribute will match the domain shown in the web browser's [^27] address bar. Third-party cookies do not, since they belong to a different domain.  This sort of cookie typically appears when a web page features content from external websites, as ads.
 
-As an example, suppose a user visits a website `www.example.org`. This website contains an ad that sets a cookie from `ad.foo.com`. So, when the website `www.example.org` is loaded, the cookie from `ad.foo.com` is stored in the user's computer. When the user visits a second website called `www.secondexample.com` that contains another ad from the same domain as the first one (`ad.foo.com`), the cookie set in the first example is sent to `ad.foo.com` and a second cookie is set in that website. Therefore, the domain `ad.foo.com` knows that user has visited the websites `www.example.org` and `www.secondexample.com`.
+As an example, suppose a user visits a website `www.example.org`. This website contains an ad that sets a cookie from `ad.foo.com`. So, when the website `www.example.org` is loaded, the cookie from `ad.foo.com` is stored in the user's computer. When the user visits a second website called `www.secondexample.com` that contains another ad from the same domain as the first one (`ad.foo.com`), the cookie set in the first example is sent to `ad.foo.com` and a second cookie is set in that website. Therefore, the domain `ad.foo.com` knows that user has visited the websites `www.example.org` and `www.secondexample.com`.  
+
+![cookie_tracking](/home/ismael/myRepos/AreVPNsAnonymus/Images/AreVPNsAnonymus/cookie_tracking.png)
+
+#### Session ID
+
+A session identifier is a piece of data used to identify a session, that is a series of related message exchanges [^29]. Session ID are necessary in stateless protocols like the HTTP/HTTPS. They are typically granted on the first visit to a site.
 
 # References
 
@@ -199,10 +269,22 @@ As an example, suppose a user visits a website `www.example.org`. This website c
 | 21 | https://en.wikipedia.org/wiki/Deep_packet_inspection         | 24/08/2020 | Wikipedia - DPI                     |
 | 22 | https://en.wikipedia.org/wiki/Client-server                  | 21/08/2020 | Wikipedia - Client-Server model     |
 | 23 | https://en.wikipedia.org/wiki/HTTP_cookie | 30/08/2020 | Wikipedia - HTTP cookie |
-|  | https://en.wikipedia.org/wiki/Internet_privacy |  | * |
-|  | https://en.wikipedia.org/wiki/Online_identity_management |  | * |
-|  | https://en.wikipedia.org/wiki/Personal_data |  | * |
-|  | https://en.wikipedia.org/wiki/Web_mining |  | * |
+| 24 | https://privacy.net/stop-cookies-tracking/ | 31/08/2020 | Online Tracking |
+| 25 | https://www.techwalla.com/articles/what-is-a-referral-url | 31/08/2020 | About Referral URLs |
+| 26 | https://en.wikipedia.org/wiki/Web_beacon | 31/08/2020 | Wikipedia - Web Beacon |
+| 27 | https://en.wikipedia.org/wiki/Web_browser | 31/08/2020 | Wikipedia - Web Browser |
+| 28 | https://en.wikipedia.org/wiki/Server_(computing) | 31/08/2020 | Wikipedia - Server |
+| 29 | https://en.wikipedia.org/wiki/Session_ID | 31/08/2020 | Wikipedia - Session ID |
+| 30 | https://en.wikipedia.org/wiki/Device_fingerprint | 01/09/2020 | Wikipedia - Device Fingerprint |
+| 31 | https://amiunique.org/faq | 31/08/2020 | About Browser Fingerprinting |
+|  | https://nordvpn.com/es/blog/super-cookies-going-global/ | 01/09/2020 | About Supercookies |
+|  | https://uploads.clearcode.cc/clearcode.cc/2015/12/How-cookie-syncing-works.jpg?ver=1540348895 | 01/09/2020 | Cookie sync picture |
+|  | https://pixelprivacy.com/resources/browser-fingerprinting/ | 01/09/2020 | About Device Fingerprinting |
+|  | https://vpnpros.com/blog/how-cookies-affected-by-vpn/ | 31/08/2020 | Cookies in VPNs |
+|  | https://en.wikipedia.org/wiki/Internet_privacy | 31/08/2020 | * |
+|  | https://en.wikipedia.org/wiki/Online_identity_management | 31/08/2020 | * |
+|  | https://en.wikipedia.org/wiki/Personal_data | 31/08/2020 | * |
+|  | https://en.wikipedia.org/wiki/Web_mining | 31/08/2020 | * |
 |  | https://www.vpn-accounts.com/blog/vpn-tracking-cookies-explained/ | 30/08/2020 | VPN & Tracking cookies |
 |      | https://www.bestvpnz.com/vpn-101-everything-you-need-to-know-about-virtual-private-networks | 11/08/2020 | About VPNs                          |
 |      | https://privacyaustralia.net/hola-vpn-review/                | 24/08/2020 | Hola VPN Review                     |
@@ -230,6 +312,13 @@ As an example, suppose a user visits a website `www.example.org`. This website c
 [^19]: https://en.wikipedia.org/wiki/Network_address_translation "Wikipedia - NAT"  
 [^20]: https://en.wikipedia.org/wiki/Domain_Name_System "Wikipedia - DNS"
 [^21]: https://en.wikipedia.org/wiki/Deep_packet_inspection "Wikipedia - DPI"  
-
 [^22]: https://en.wikipedia.org/wiki/Client-server "Wikipedia - Client-server Model
 [^23]: https://en.wikipedia.org/wiki/HTTP_cookie "Wikipedia - HTTP cookie"
+[^24]: https://vpnpros.com/blog/how-cookies-affected-by-vpn/ "Online Tracking"
+[^25]: https://www.techwalla.com/articles/what-is-a-referral-url "About Referral URLs"
+[^26]: https://en.wikipedia.org/wiki/Web_beacon "Wikipedia - Web Beacon"
+[^27]: https://en.wikipedia.org/wiki/Web_browser "Wikipedia - Web Browser"
+[^28]: https://en.wikipedia.org/wiki/Server_(computing) "Wikipedia - Server"
+[^29]: https://en.wikipedia.org/wiki/Session_ID "Wikipedia - Session ID"
+[^30]: https://en.wikipedia.org/wiki/Device_fingerprint  "Wikipedia - Device Fingerprint"
+[^31]:   https://amiunique.org/faq "AmIUnique Website"

@@ -10,7 +10,7 @@ People often think of Virtual Private Networks (VPNs) of a way to safely browse 
 
 ## Are they safe?
 
-Most VPN services encrypt your network traffic, so that no one can [eavesdrop](#eavesdropping) on your online activities, not even your Internet Service Provider (ISP) or secular authorities. However, traffic encryption does not imply safety in all situations. The most common practice performed 
+Most VPN services encrypt your network traffic, so that no one can [eavesdrop](#eavesdropping) on your online activities, not even your Internet Service Provider (ISP) or secular authorities. However, traffic encryption does not imply safety in all situations.
 
 # Appendix
 
@@ -18,12 +18,15 @@ Most VPN services encrypt your network traffic, so that no one can [eavesdrop](#
 
 Eavesdropping is the interception of communication between two parties by a third party. There are many ways hackers eavesdrop nowadays. However, it is sometimes performed by authorities and ISPs as well.
 
-| Nº   | Reference                                                    | Date       | Content                               |      |
-| ---- | ------------------------------------------------------------ | ---------- | ------------------------------------- | ---- |
-| 1    | https://www.websafetytips.com/what-is-malware-and-how-to-detect-it/ | 27/08/2020 | About malware                         |      |
-| 2    | https://www.tomsguide.com/us/home-router-security,news-19245.html | 27/08/2020 | Router security                       | *    |
-|      | https://pixelprivacy.com/resources/how-to-encrypt-your-traffic/ | 27/08/2020 | Encryption                            | *    |
-|      | https://blogs.cisco.com/security/threats-in-encrypted-traffic | 27/08/2020 | Security threats in encrypted traffic | *    |
-|      |                                                              |            |                                       |      |
-|      |                                                              |            |                                       |      |
-|      |                                                              |            |                                       |      |
+
+
+| Nº   | Reference                                                    | Date       | Content                                    |      |
+| ---- | ------------------------------------------------------------ | ---------- | ------------------------------------------ | ---- |
+| 1    | https://www.websafetytips.com/what-is-malware-and-how-to-detect-it/ | 27/08/2020 | About malware                              |      |
+| 2    | https://www.tomsguide.com/us/home-router-security,news-19245.html | 27/08/2020 | Router security                            | *    |
+|      | https://pixelprivacy.com/resources/how-to-encrypt-your-traffic/ | 27/08/2020 | Encryption                                 | *    |
+|      | https://blogs.cisco.com/security/threats-in-encrypted-traffic | 27/08/2020 | Security threats in encrypted traffic      | *    |
+|      | https://security.stackexchange.com/questions/73816/can-you-still-be-tracked-when-using-a-vpn | 08/09/2020 | Can you still be tracked when using a VPN? | *    |
+|      | https://www.pcworld.com/article/3150256/how-to-check-if-your-vpn-is-leaking-private-data.html | 08/09/2020 | Is your VPN secure? How to check for leaks | *    |
+|      | https://restoreprivacy.com/vpn-warning-list/                 | 08/09/2020 | VPN Warning List – Is your VPN safe?       |      |
+|      | https://nordvpn.com/es/blog/check-vpn-working/               | 08/09/2020 | How to check if VPN is working             | *    |

@@ -1,4 +1,4 @@
-# Are VPNs Anonymous?
+# Are VPNs Anonymous
 
 ## Methodology and Purpose
 
@@ -8,9 +8,9 @@ This document wants to explain the main concepts of VPNs and how these are relat
 
 A VPN (Virtual Private Network) extends a private network [^16] across a public network[^16] and enables users to send and receive data across shared or public networks as if their computing devices were directly connected to the private network. For security, the private network connection may be established using an encrypted layered [tunneling protocol](#tunneling-protocol), and users may be required to pass various authentication methods to gain access to the VPN [^1].  Nowadays, [OpenVPN](#openvpn) is the one of the most used protocols available.
 
-VPNs are often considered the key to safety and privacy while browsing the internet. However, there are some important things that we have to take into consideration when choosing a VPN if we want to enjoy safety and privacy. 
+VPNs are often considered the key to safety and privacy while browsing the internet. However, there are some important things that we have to take into consideration when choosing a VPN if we want to enjoy safety and privacy.
 
-## Where can VPNs be installed?
+## Where can VPNs be installed
 
 VPNs are supported in many OS. Some of them are Windows, Mac OS X, iOS, Android, and Linux (Ubuntu) and Chrome book. They also work on mobile devices, like Android, IPhone and IPad.
 
@@ -24,7 +24,7 @@ Some routers also support VPNs. Find some of the firmware that support VPNs belo
 | OPNsense         | Free | Deciso BV                    |
 | Tomato           | Free | Keith Moyer                  |
 
-## Are they anonymous?  
+## Are they anonymous  
 
 While most VPN providers claim they do not keep logs, it is true that most companies keep basic connection logs(User [IP address](#ip-address) and VPN timestamp). It is very important to check the companies privacy policy and the location of their headquarters (in terms of jurisdiction).
 
@@ -37,6 +37,7 @@ Typically, your ISP (Internet Service Provider) would have to pay special attent
 It is well known that companies keep personal information when we use their products. Now a days, it is very common (if not obligatory) that web pages ask you to accept their privacy policy and the use they give to your data (be by using cookies or any other means). When choosing a VPN service, it is very important to read carefully the privacy policy of that company in order to be aware of the data they store about us. It would make no sense that we used a VPN to hide our personal data ( [IP](#ip-address), billing information, name, ...) but the VPN itself stores and uses that information!
 
 ### Different levels of logging  
+
 Companies may have different logging levels. These are the three main categories:
 
 1. **Usage (browsing) logs** – These logs basically include online activity: browsing history, connection times, [IP addresses](#ip-address), metadata, etc. From a privacy standpoint, you should avoid any VPN that collects usage data. Most of the VPN services that are collecting usage logs are free VPN apps, which are basically spyware. The data they collect is then sold to third parties, thereby monitoring the “free VPN” service.
@@ -55,7 +56,7 @@ Data authentication is part of the encryption process and refers to the message 
 
 ### Further considerations
 
-VPN servers [^28] may use static or dynamic [IP addresses](#ip-address). The later are the most common used. There are pros and cons for both approaches, and they can be important to the user depending on the use given to the VPN (and the budget available). 
+VPN servers [^28] may use static or dynamic [IP addresses](#ip-address). The later are the most common used. There are pros and cons for both approaches, and they can be important to the user depending on the use given to the VPN (and the budget available).
 
 - **Dynamic [IP address](#ip-address)**
   - Pros - They provide greater anonymity for public WiFi hotspots, for they implement [NAT](#nat) and offer a wider range of [IPs](#ip-address).
@@ -72,12 +73,13 @@ Many VPN offer anonymous payment options, like Bitcoin, Altcoins, Alipay, CashU,
 
 Deep packet inspection (DPI) [^21] or packet sniffing is a type of data processing that inspects in detail the data being sent over a computer network [^16], and usually takes action by blocking, re-routing, or logging it accordingly.  It is used by ISPs, government agencies, and hackers to monitor and retain all of the data transmitted to and from your computer, including confidential and private information. To help customers bypass this, VPN providers are actively implementing modified OpenVPN protocols with added obfuscation layers, which masks VPN traffic away from view of DPI crawls. Check your VPN provider on this topic.
 
-## Free or Paid VPNs?  
+## Free or Paid VPNs  
+
 Free VPN services normally offer slower bandwidth and a smaller server [^28] range. It is also important to consider that everyone wants to make a living, so while they claim to be free, they may make money using other means, which, in some cases, compromise the users confidentiality ( see the case of [Hola](#Hola-VPN) in the appendix ).  
 
 A legitimate and reliable paid VPN service offers several advantages, including a much more private environment, authentic guarantees, faster speeds, more servers [^28], more extra features and add-on services, as well as being less likely to log traffic or connection logs. Normally, and given that you pay for them, they are more likely to be safe compared to free services.
 
-## Can I be tracked while using a VPN?
+## Can I be tracked while using a VPN
 
 Strictly speaking, using a personal VPN does not prevent others from tracking you fully. Some tracking techniques can go through a VPNs layer of privacy and still identify you while browsing the internet. Some of this practices are simple, some others are more complicated. Common tracking practices that are not stopped while using a VPN will be considered in the following subheadings.
 
@@ -147,30 +149,27 @@ A zombie cookie remains intact as it hides outside of your browser's regular coo
 
 If an ISP decides to track you with supercookies, there is not really much you can do, except encrypting your traffic ( so that at least, they do not know what you are doing ). This can be done by using HTTPS-only websites, and by using a VPN. However, the last if the safer option.  
 
+## Appendix
 
-
-
-# Appendix
-
-#### Communication protocol
+### Communication protocol
 
 A communication protocol is a system of rules that allow two or more entities of a communications system to transmit information via any kind of variation of a physical quantity. The protocol defines the rules, syntax, semantics and synchronization of communication and possible error recovery methods. Protocols may be implemented by hardware, software, or a combination of both [^3].
 
-#### Tunneling protocol
+### Tunneling protocol
 
 A tunneling protocol is a [communication protocol](#communication-protocol) that allows for the movement of data from one network [^16] to another. Because tunneling involves [repackaging](#encapsulation) the traffic data into a different form, perhaps with [encryption](#encryption) as standard, it can hide the nature of the traffic that is run through a tunnel [^2].  
 
-#### Encapsulation
+### Encapsulation
 
 In computer networking [^16], encapsulation is a method of designing modular communication protocols in which logically separate functions in the network are abstracted from their underlying structures by inclusion or information hiding within higher level objects [^4].  
 
 ![UDP_encapsulation](Images/AreVPNsAnonymus/UDP_encapsulation.png)
 
-#### Encryption
+### Encryption
 
 In cryptography, encryption is the process of encoding information. This process converts the original representation of the information, known as plaintext, into an alternative form known as ciphertext. Only authorized parties can decipher a ciphertext back to plaintext and access the original information [^4].  
 
-#### OpenVPN
+### OpenVPN
 
 OpenVPN is open-source software (there is a commercial version and a free edition) that implements virtual private network (VPN) techniques to create secure point-to-point or site-to-site connections in routed or bridged configurations and remote access facilities. It uses a custom security protocol that utilizes SSL/TLS for key exchange. It is capable of traversing network address translators (NATs) and firewalls.
 
@@ -178,26 +177,26 @@ OpenVPN allows peers to authenticate each other using pre-shared secret keys, ce
 
 OpenVPN uses the OpenSSL library to provide encryption of both the data and control channels. It lets OpenSSL do all the encryption and authentication work, allowing OpenVPN to use all the ciphers available in the OpenSSL package. It can also use HMAC packet authentication feature to add an additional layer of security. Mbed TLS is available starting from version 2.3 [^6].  
 
-#### Security Attacks  
+### Security Attacks  
 
 Security attacks [^12] can be divided in two groups: active and passive attacks:
 
-- **Active attacks** - An Active attack attempts to alter system resources or effect their operations. Active attack involve some modification of the data stream or creation of false statement 
+- **Active attacks** - An Active attack attempts to alter system resources or effect their operations. Active attack involve some modification of the data stream or creation of false statement.
 
 - **Passive attacks** - A Passive attack attempts to learn or make use of information from the system but does not affect system resources. Passive Attacks are in the nature of eavesdropping on or monitoring of transmission. The goal of the opponent is to obtain information is being transmitted.
 
-#### Encryption Key
+### Encryption Key
 
 Encryption keys are used to encrypt data. The most common forms of encryption are symmetric-key encryption and public-key encryption [^14].
 
 - **Symmetric-key encryption** - All users share the same key, enabling everyone with the key to encrypt and decrypt data.
 - **Public-key encryption** - Each user has a public-private key pair. One user has a private key to encrypt data while another user has the corresponding public key to decrypt that data.
 
-#### IP Address  
+### IP Address  
 
 An Internet Protocol Address[^15] is a numerical label assigned to each device connected to a computer network[^16] that uses the Internet Protocol[^17] for communication. They serve two main functions: identification of a host or network interface and location addressing (transferring information from one place to another) .
 
-#### Hola VPN   
+### Hola VPN
 
 Hola, based out of Israel, is mainly a free VPN service. It also offers paid subscriptions. Hola was the first [P2P](#p2p) based VPN service created. But this VPN services did not become famous for its good things, but for its bad things. According to their privacy policy, we can say the following:
 
@@ -207,28 +206,29 @@ Hola, based out of Israel, is mainly a free VPN service. It also offers paid sub
 - **Personal data** - They store your [IP address](#ip-address), name, email and they may share it “subsidiaries and affiliated companies".
 - **Encryption level** -  Non-existent. Hola VPN uses a proxy tunnel, transmitting information in plain text.
 
-##### Conclusion: Is Hola VPN Safe?
+#### Conclusion: Is Hola VPN Safe
 
 No, specially for free users. Take into consideration that, when using this VPN, other users can use your computer bandwidth for illegal purposes! Furthermore, they are aware that malicious users may bypass their security checkups and gain access to your computer and they are warning you about that in their security policies, saying they will try their best to fix this issues.
 
-#### P2P  
+### P2P  
+
 Peer-to-peer (P2P) computing or networking is a distributed application architecture that partitions tasks or workloads between peers. Peers are equally privileged, equally potent participants in the application. They are said to form a peer-to-peer network of nodes. P2P was popularized by the music-sharing application Napster, and it is the root of file-sharing and torrenting.
 
 ![P2P-network](Images/AreVPNsAnonymus/P2P-network.png)
 
 Peers make a portion of their resources, such as processing power, disk storage or network bandwidth, directly available to other network participants, without the need for central coordination by servers [^28] or stable hosts. Peers are both suppliers and consumers of resources, in contrast to the traditional client-server [^22] model in which the consumption and supply of resources is divided [^13].
 
-#### NAT  
+### NAT  
 
 Network address translation (NAT) [^19] is a method of remapping an [IP address](#ip-address) space (a range of discrete IP addresses) into another by modifying the identifier of the network interface or host in the packet in transit across a routing device. IP masquerading, similar to NAT, consists on hiding an entire address space behind a single [IP address](#ip-address). This is used in common routers, so that all the devices connected to the network share one public [IP address](#ip-address).
 
 ![Full_Cone_NAT](Images/AreVPNsAnonymus/Full_Cone_NAT.png)
 
-#### DNS
+### DNS
 
-The Domain Name System (DNS) [^20] is a naming system for devices connected to a network. Mainly, it translates [IP addresses](#ip-addres) needed for locating and identifying computers to domain names. 
+The Domain Name System (DNS) [^20] is a naming system for devices connected to a network. Mainly, it translates [IP addresses](#ip-addres) needed for locating and identifying computers to domain names.
 
-#### Cookies
+### Cookies
 
 An HTTP cookie is a small piece of data stored on the user's computer by the web browser [^27] while browsing a website. Cookies were designed to be a reliable mechanism for websites to remember stateful information, as the HTTP protocol does not. However, not all cookies have innocent intentions. Tracking cookies, and specially third-party tracking cookies are commonly used as ways to compile long-term records of individuals' browsing histories, and therefore can violate the users' privacy online [^23].
 
@@ -236,60 +236,60 @@ Normally a cookie's domain attribute will match the domain shown in the web brow
 
 As an example, suppose a user visits a website `www.example.org`. This website contains an ad that sets a cookie from `ad.foo.com`. So, when the website `www.example.org` is loaded, the cookie from `ad.foo.com` is stored in the user's computer. When the user visits a second website called `www.secondexample.com` that contains another ad from the same domain as the first one (`ad.foo.com`), the cookie set in the first example is sent to `ad.foo.com` and a second cookie is set in that website. Therefore, the domain `ad.foo.com` knows that user has visited the websites `www.example.org` and `www.secondexample.com`.  
 
-![cookie_tracking](/home/ismael/myRepos/AreVPNsAnonymus/Images/AreVPNsAnonymus/cookie_tracking.png)
+![cookie_tracking](Images/AreVPNsAnonymus/cookie_tracking.png)
 
-#### Session ID
+### Session ID
 
 A session identifier is a piece of data used to identify a session, that is a series of related message exchanges [^29]. Session ID are necessary in stateless protocols like the HTTP/HTTPS. They are typically granted on the first visit to a site.
 
-# References
+## References
 
 | Nº   | **Reference**                                                | **Date**   | **Content**                         |
 | ---- | ------------------------------------------------------------ | ---------- | ----------------------------------- |
-| 1    | https://en.wikipedia.org/wiki/Virtual_private_network        | 10/08/2020 | Wikipedia - Virtual Private Network |
-| 2    | https://en.wikipedia.org/wiki/Tunneling_protocol             | 10/08/2020 | Wikipedia - Tunneling protocol      |
-| 3    | https://en.wikipedia.org/wiki/Communications_protocol        | 10/08/2020 | Wikipedia - Communications Protocol |
-| 4    | https://en.wikipedia.org/wiki/Encapsulation_(networking)     | 10/08/2020 | Wikipedia - Encapsulation           |
-| 5    | https://en.wikipedia.org/wiki/Encryption                     | 10/08/2020 | Wikipedia - Encryption              |
-| 6    | https://en.wikipedia.org/wiki/OpenVPN                        | 11/08/2020 | Wikipedia - OpenVPN                 |
-| 7     | https://pixelprivacy.com/vpn/no-log-vpn                      | 11/08/2020 | Logless VPNs                        |
-| 8 | https://en.wikipedia.org/wiki/Advanced_Encryption_Standard   | 13/08/2020 | AES Encryption Standard             |
-| 9 | https://en.wikipedia.org/wiki/SHA-1                          | 13/08/2020 | SHA-1 Encryption Standard           |
-| 11 | https://en.wikipedia.org/wiki/SHA-2                          | 13/08/2020 | SHA-2 Encryption Standard           |
-| 10 | https://en.wikipedia.org/wiki/RSA_(cryptosystem)             | 13/08/2020 | RSA Encryption Standard             |
-| 12 | https://www.geeksforgeeks.org/active-and-passive-attacks-in-information-security | 13/08/2020 | Active and Passive Security Attacks |
-| 13 | https://en.wikipedia.org/wiki/Peer-to-peer                   | 21/08/2020 | Wikipedia -  Peer To Peer           |
-| 14 | https://support.microsoft.com/en-us/help/246071/description-of-symmetric-and-asymmetric-encryption | 13/08/2020 | Encryption Keys                     |
-| 15 | https://en.wikipedia.org/wiki/IP_address                     | 22/08/2020 | Wikipedia - IP Address              |
-| 16 | https://en.wikipedia.org/wiki/Computer_network | 24/08/2020 | Wikipedia - Computer Network |
-| 17 | https://en.wikipedia.org/wiki/Internet_Protocol | 24/08/2020 | Wikipedia - Internet Protocol |
-| 18 | https://thebestvpn.com/5-9-14-eyes-countries/                | 24/08/2020 | 14-Eyes Countries and Jurisdiction  |
-| 19 | https://en.wikipedia.org/wiki/Network_address_translation    | 24/08/2020 | Wikipedia - NAT                     |
-| 20 | https://en.wikipedia.org/wiki/Domain_Name_System             | 24/08/2020 | Wikipedia - DNS                     |
-| 21 | https://en.wikipedia.org/wiki/Deep_packet_inspection         | 24/08/2020 | Wikipedia - DPI                     |
-| 22 | https://en.wikipedia.org/wiki/Client-server                  | 21/08/2020 | Wikipedia - Client-Server model     |
-| 23 | https://en.wikipedia.org/wiki/HTTP_cookie | 30/08/2020 | Wikipedia - HTTP cookie |
-| 24 | https://privacy.net/stop-cookies-tracking/ | 31/08/2020 | Online Tracking |
-| 25 | https://www.techwalla.com/articles/what-is-a-referral-url | 31/08/2020 | About Referral URLs |
-| 26 | https://en.wikipedia.org/wiki/Web_beacon | 31/08/2020 | Wikipedia - Web Beacon |
-| 27 | https://en.wikipedia.org/wiki/Web_browser | 31/08/2020 | Wikipedia - Web Browser |
-| 28 | https://en.wikipedia.org/wiki/Server_(computing) | 31/08/2020 | Wikipedia - Server |
-| 29 | https://en.wikipedia.org/wiki/Session_ID | 31/08/2020 | Wikipedia - Session ID |
-| 30 | https://en.wikipedia.org/wiki/Device_fingerprint | 01/09/2020 | Wikipedia - Device Fingerprint |
-| 31 | https://amiunique.org/faq | 31/08/2020 | About Browser Fingerprinting |
-|  | https://nordvpn.com/es/blog/super-cookies-going-global/ | 01/09/2020 | About Supercookies |
-|  | https://uploads.clearcode.cc/clearcode.cc/2015/12/How-cookie-syncing-works.jpg?ver=1540348895 | 01/09/2020 | Cookie sync picture |
-|  | https://pixelprivacy.com/resources/browser-fingerprinting/ | 01/09/2020 | About Device Fingerprinting |
-|  | https://vpnpros.com/blog/how-cookies-affected-by-vpn/ | 31/08/2020 | Cookies in VPNs |
-|  | https://en.wikipedia.org/wiki/Internet_privacy | 31/08/2020 | * |
-|  | https://en.wikipedia.org/wiki/Online_identity_management | 31/08/2020 | * |
-|  | https://en.wikipedia.org/wiki/Personal_data | 31/08/2020 | * |
-|  | https://en.wikipedia.org/wiki/Web_mining | 31/08/2020 | * |
-|  | https://www.vpn-accounts.com/blog/vpn-tracking-cookies-explained/ | 30/08/2020 | VPN & Tracking cookies |
-|      | https://www.bestvpnz.com/vpn-101-everything-you-need-to-know-about-virtual-private-networks | 11/08/2020 | About VPNs                          |
-|      | https://privacyaustralia.net/hola-vpn-review/                | 24/08/2020 | Hola VPN Review                     |
-|      | https://thebestvpn.com/reviews/hola-vpn/                     | 21/08/2020 | Hola VPN Review                     |
-|      | https://proprivacy.com/vpn/review/hola                       | 21/08/2020 | Hola VPN Review                     |
+| 1    | <https://en.wikipedia.org/wiki/Virtual_private_network>        | 10/08/2020 | Wikipedia - Virtual Private Network |
+| 2    | <https://en.wikipedia.org/wiki/Tunneling_protocol>             | 10/08/2020 | Wikipedia - Tunneling protocol      |
+| 3    | <https://en.wikipedia.org/wiki/Communications_protocol>        | 10/08/2020 | Wikipedia - Communications Protocol |
+| 4    | <https://en.wikipedia.org/wiki/Encapsulation_(networking>)     | 10/08/2020 | Wikipedia - Encapsulation           |
+| 5    | <https://en.wikipedia.org/wiki/Encryption>                     | 10/08/2020 | Wikipedia - Encryption              |
+| 6    | <https://en.wikipedia.org/wiki/OpenVPN>                        | 11/08/2020 | Wikipedia - OpenVPN                 |
+| 7     | <https://pixelprivacy.com/vpn/no-log-vpn>                      | 11/08/2020 | Logless VPNs                        |
+| 8 | <https://en.wikipedia.org/wiki/Advanced_Encryption_Standard>   | 13/08/2020 | AES Encryption Standard             |
+| 9 | <https://en.wikipedia.org/wiki/SHA-1>                          | 13/08/2020 | SHA-1 Encryption Standard           |
+| 11 | <https://en.wikipedia.org/wiki/SHA-2>                          | 13/08/2020 | SHA-2 Encryption Standard           |
+| 10 | <https://en.wikipedia.org/wiki/RSA_(cryptosystem>)             | 13/08/2020 | RSA Encryption Standard             |
+| 12 | <https://www.geeksforgeeks.org/active-and-passive-attacks-in-information-security> | 13/08/2020 | Active and Passive Security Attacks |
+| 13 | <https://en.wikipedia.org/wiki/Peer-to-peer>                   | 21/08/2020 | Wikipedia -  Peer To Peer           |
+| 14 | <https://support.microsoft.com/en-us/help/246071/description-of-symmetric-and-asymmetric-encryption> | 13/08/2020 | Encryption Keys                     |
+| 15 | <https://en.wikipedia.org/wiki/IP_address>                     | 22/08/2020 | Wikipedia - IP Address              |
+| 16 | <https://en.wikipedia.org/wiki/Computer_network> | 24/08/2020 | Wikipedia - Computer Network |
+| 17 | <https://en.wikipedia.org/wiki/Internet_Protocol> | 24/08/2020 | Wikipedia - Internet Protocol |
+| 18 | <https://thebestvpn.com/5-9-14-eyes-countries/>                | 24/08/2020 | 14-Eyes Countries and Jurisdiction  |
+| 19 | <https://en.wikipedia.org/wiki/Network_address_translation>    | 24/08/2020 | Wikipedia - NAT                     |
+| 20 | <https://en.wikipedia.org/wiki/Domain_Name_System>             | 24/08/2020 | Wikipedia - DNS                     |
+| 21 | <https://en.wikipedia.org/wiki/Deep_packet_inspection>         | 24/08/2020 | Wikipedia - DPI                     |
+| 22 | <https://en.wikipedia.org/wiki/Client-server>                  | 21/08/2020 | Wikipedia - Client-Server model     |
+| 23 | <https://en.wikipedia.org/wiki/HTTP_cookie> | 30/08/2020 | Wikipedia - HTTP cookie |
+| 24 | <https://privacy.net/stop-cookies-tracking/> | 31/08/2020 | Online Tracking |
+| 25 | <https://www.techwalla.com/articles/what-is-a-referral-url> | 31/08/2020 | About Referral URLs |
+| 26 | <https://en.wikipedia.org/wiki/Web_beacon> | 31/08/2020 | Wikipedia - Web Beacon |
+| 27 | <https://en.wikipedia.org/wiki/Web_browser> | 31/08/2020 | Wikipedia - Web Browser |
+| 28 | <https://en.wikipedia.org/wiki/Server_(computing>) | 31/08/2020 | Wikipedia - Server |
+| 29 | <https://en.wikipedia.org/wiki/Session_ID> | 31/08/2020 | Wikipedia - Session ID |
+| 30 | <https://en.wikipedia.org/wiki/Device_fingerprint> | 01/09/2020 | Wikipedia - Device Fingerprint |
+| 31 | <https://amiunique.org/faq> | 31/08/2020 | About Browser Fingerprinting |
+|  | <https://nordvpn.com/es/blog/super-cookies-going-global/> | 01/09/2020 | About Supercookies |
+|  | <https://uploads.clearcode.cc/clearcode.cc/2015/12/How-cookie-syncing-works.jpg?ver=1540348895> | 01/09/2020 | Cookie sync picture |
+|  | <https://pixelprivacy.com/resources/browser-fingerprinting/> | 01/09/2020 | About Device Fingerprinting |
+|  | <https://vpnpros.com/blog/how-cookies-affected-by-vpn/> | 31/08/2020 | Cookies in VPNs |
+|  | <https://en.wikipedia.org/wiki/Internet_privacy> | 31/08/2020 | * |
+|  | <https://en.wikipedia.org/wiki/Online_identity_management> | 31/08/2020 | * |
+|  | <https://en.wikipedia.org/wiki/Personal_data> | 31/08/2020 | * |
+|  | <https://en.wikipedia.org/wiki/Web_mining> | 31/08/2020 | * |
+|  | <https://www.vpn-accounts.com/blog/vpn-tracking-cookies-explained/> | 30/08/2020 | VPN & Tracking cookies |
+|      | <https://www.bestvpnz.com/vpn-101-everything-you-need-to-know-about-virtual-private-networks> | 11/08/2020 | About VPNs                          |
+|      | <https://privacyaustralia.net/hola-vpn-review/>                | 24/08/2020 | Hola VPN Review                     |
+|      | <https://thebestvpn.com/reviews/hola-vpn/>                     | 21/08/2020 | Hola VPN Review                     |
+|      | <https://proprivacy.com/vpn/review/hola>                       | 21/08/2020 | Hola VPN Review                     |
 
 [^1]: https://en.wikipedia.org/wiki/Virtual_private_network  "Wikipedia - Virtual Private Network"  
 [^2]: https://en.wikipedia.org/wiki/Tunneling_protocol  "Wikipedia - Tunneling protocol"  
@@ -305,14 +305,14 @@ A session identifier is a piece of data used to identify a session, that is a se
 [^12]: https://www.geeksforgeeks.org/active-and-passive-attacks-in-information-security/ "Active and Passive Security Attacks"  
 [^13]: https://en.wikipedia.org/wiki/Peer-to-peer "Wikipedia - Peer to Peer"  
 [^14]: https://support.microsoft.com/en-us/help/246071/description-of-symmetric-and-asymmetric-encryption "Encryption Keys"  
-[^15]: https://en.wikipedia.org/wiki/IP_address "Wikipedia - IP Address" 
+[^15]: https://en.wikipedia.org/wiki/IP_address "Wikipedia - IP Address"
 [^16]: https://en.wikipedia.org/wiki/Computer_network "Wikipedia - Computer Network"  
 [^17]: https://en.wikipedia.org/wiki/Internet_Protocol "Wikipedia - Internet Protocol"
 [^18]: https://thebestvpn.com/5-9-14-eyes-countries/ "14-Eyes Countries and Jurisdiction"
 [^19]: https://en.wikipedia.org/wiki/Network_address_translation "Wikipedia - NAT"  
 [^20]: https://en.wikipedia.org/wiki/Domain_Name_System "Wikipedia - DNS"
 [^21]: https://en.wikipedia.org/wiki/Deep_packet_inspection "Wikipedia - DPI"  
-[^22]: https://en.wikipedia.org/wiki/Client-server "Wikipedia - Client-server Model
+[^22]: https://en.wikipedia.org/wiki/Client-server "Wikipedia - Client-server Model"
 [^23]: https://en.wikipedia.org/wiki/HTTP_cookie "Wikipedia - HTTP cookie"
 [^24]: https://vpnpros.com/blog/how-cookies-affected-by-vpn/ "Online Tracking"
 [^25]: https://www.techwalla.com/articles/what-is-a-referral-url "About Referral URLs"
@@ -321,4 +321,4 @@ A session identifier is a piece of data used to identify a session, that is a se
 [^28]: https://en.wikipedia.org/wiki/Server_(computing) "Wikipedia - Server"
 [^29]: https://en.wikipedia.org/wiki/Session_ID "Wikipedia - Session ID"
 [^30]: https://en.wikipedia.org/wiki/Device_fingerprint  "Wikipedia - Device Fingerprint"
-[^31]:   https://amiunique.org/faq "AmIUnique Website"
+[^31]: https://amiunique.org/faq "AmIUnique Website"

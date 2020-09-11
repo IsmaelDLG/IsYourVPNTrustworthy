@@ -14,10 +14,46 @@
         <h1 class="display-3">Example server</h1>
         <p class="lead">Javascript injection example</p>
         <hr class="my-2">
-        <p>More info</p>
-        <p class="lead">
-            <a class="btn btn-primary btn-lg" href="Jumbo action link" role="button">Jumbo action name</a>
-        </p>
+        <div class="container">
+          <h1>Post something</h1>
+
+          <form action="/upload" method="post">
+            <div class="form-group">
+              <label for="Title"></label>
+              <input type="text"
+                class="form-control" name="title" id="" aria-describedby="helpId" placeholder="">
+              <small id="helpId" class="form-text text-muted">Title of your article</small>
+
+              <label for="Description"></label>
+              <input type="text"
+                class="form-control" name="desc" id="" aria-describedby="helpId" placeholder="">
+              <small id="helpId" class="form-text text-muted">Description of your article</small>
+
+              <label for="Image file"></label>
+              <input type="file" class="form-control-file" name="file" id="" placeholder="" aria-describedby="fileHelpId">
+              <small id="fileHelpId" class="form-text text-muted">Some image for your post</small>
+              <button type="submit" class="btn btn-primary mt-3 btn-block">Submit</button>
+            </div>
+          </form>
+          <hr class="my-2">
+          <h1>Other posts</h1>
+          <div class="card-deck">
+            <div class="card">
+              <img class="card-img-top" src="{{ url_for('static', filename = 'example.jpeg') }}" alt="">
+              <div class="card-body">
+                <h4 class="card-title">Title</h4>
+                <p class="card-text">Text</p>
+              </div>
+            </div>
+            <div class="card">
+              <img class="card-img-top" src="{{ url_for('static', filename = 'example.jpeg') }}" alt="">
+              <div class="card-body">
+                <h4 class="card-title">Title</h4>
+                <p class="card-text">Text</p>
+              </div>
+            </div>
+          </div>
+        
     </div>  
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

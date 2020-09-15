@@ -5,9 +5,11 @@ verify_ssl = true
 
 [dev-packages]
 sphinx = "*"
-rinohtype = "*"
 pylint = "*"
 black = "*"
+rinohtype = "*"
+recommonmark = "*"
+sphinx-rtd-theme = "*"
 
 [packages]
 flask = "*"

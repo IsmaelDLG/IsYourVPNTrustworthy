@@ -3,18 +3,27 @@ Code Documentation
 
 In this page you will find the domunetation of the tools used and created in this project.
 
-* :ref:`flask-server-tag`.
+* :ref:`js-injection-tag`.
+   * :ref:`flask-server-tag`.
+   * :ref:`database-tag`.
 
+.. _js-injection-tag:
+
+JS Injection Example
+---------------------
 
 .. _flask-server-tag:
 
-JS Injection Example (Server)
-------------------------------
-
-Server for JS Injection example
-
-Contains a minimal implementation of a web server, using Flask.
+Flask Server
+~~~~~~~~~~~~~
 
 .. automodule:: src.flask_server.server
    :members:
 
+.. _database-tag:
+
+Database
+~~~~~~~~~~~~~
+
+.. automodule:: src.flask_server.mydb
+   :members:

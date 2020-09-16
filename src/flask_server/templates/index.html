@@ -17,7 +17,7 @@
         <div class="container">
           <h1>Post something</h1>
 
-          <form action="/upload" method="post">
+          <form action="/upload" method="post" enctype="multipart/form-data">
             <div class="form-group">
               <label for="Title"></label>
               <input type="text"
@@ -38,20 +38,15 @@
           <hr class="my-2">
           <h1>Other posts</h1>
           <div class="card-deck">
+          {% for title, text, path, name in posts %}
             <div class="card">
-              <img class="card-img-top" src="{{ url_for('static', filename = 'example.jpeg') }}" alt="">
+              <img class="card-img-top" src="{{ url_for('static', filename = name ) }}" alt="">
               <div class="card-body">
-                <h4 class="card-title">Title</h4>
-                <p class="card-text">Text</p>
+                <h4 class="card-title">{{ title }}</h4>
+                <p class="card-text">{{ text }}</p>
               </div>
             </div>
-            <div class="card">
-              <img class="card-img-top" src="{{ url_for('static', filename = 'example.jpeg') }}" alt="">
-              <div class="card-body">
-                <h4 class="card-title">Title</h4>
-                <p class="card-text">Text</p>
-              </div>
-            </div>
+          {% endfor %}
           </div>
         
     </div>  

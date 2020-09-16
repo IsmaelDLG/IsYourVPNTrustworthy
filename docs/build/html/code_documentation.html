@@ -86,7 +86,11 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="AreVPNsAnonymus.html">Are VPNs Anonymous</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Code Documentation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#js-injection-example-server">JS Injection Example (Server)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#js-injection-example">JS Injection Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-src.flask_server.server">Flask Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-src.flask_server.mydb">Database</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -158,13 +162,22 @@
 <h1>Code Documentation<a class="headerlink" href="#code-documentation" title="Permalink to this headline">¶</a></h1>
 <p>In this page you will find the domunetation of the tools used and created in this project.</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#flask-server-tag"><span class="std std-ref">JS Injection Example (Server)</span></a>.</p></li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#js-injection-tag"><span class="std std-ref">JS Injection Example</span></a>.</dt><dd><ul>
+<li><p><a class="reference internal" href="#flask-server-tag"><span class="std std-ref">Flask Server</span></a>.</p></li>
+<li><p><a class="reference internal" href="#database-tag"><span class="std std-ref">Database</span></a>.</p></li>
 </ul>
-<div class="section" id="js-injection-example-server">
-<span id="flask-server-tag"></span><h2>JS Injection Example (Server)<a class="headerlink" href="#js-injection-example-server" title="Permalink to this headline">¶</a></h2>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="section" id="js-injection-example">
+<span id="js-injection-tag"></span><h2>JS Injection Example<a class="headerlink" href="#js-injection-example" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-src.flask_server.server">
+<span id="flask-server"></span><span id="flask-server-tag"></span><h3>Flask Server<a class="headerlink" href="#module-src.flask_server.server" title="Permalink to this headline">¶</a></h3>
 <p>Server for JS Injection example</p>
-<p>Contains a minimal implementation of a web server, using Flask.</p>
-<span class="target" id="module-src.flask_server.server"></span><dl class="py function">
+<p>Contains a minimal implementation of a server.</p>
+<dl class="py function">
 <dt id="src.flask_server.server.hello_name">
 <code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">hello_name</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#hello_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.hello_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>A simple hello function, using a param</p>
@@ -195,12 +208,74 @@
 </dl>
 </dd></dl>
 
+</div>
+<div class="section" id="module-src.flask_server.mydb">
+<span id="database"></span><span id="database-tag"></span><h3>Database<a class="headerlink" href="#module-src.flask_server.mydb" title="Permalink to this headline">¶</a></h3>
+<p>A simple module we use to store data temporally.</p>
+<p>Currently using sqlite3. Sqlite3 comes with a :memory: param that creates the DB in RAM memory, but this is not used because Flask is multithreaded, and sqlite cursors cannot be shared among threads!</p>
 <dl class="py function">
-<dt id="src.flask_server.server.upload">
-<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">upload</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.upload" title="Permalink to this definition">¶</a></dt>
-<dd><p>See for more: <a class="reference external" href="https://stackabuse.com/integrating-h2-with-python-and-flask/">Origin</a></p>
+<dt id="src.flask_server.mydb.close">
+<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">close</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the given connection connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>conn</strong> – A sqlite3.connection.</p>
+</dd>
+</dl>
 </dd></dl>
 
+<dl class="py function">
+<dt id="src.flask_server.mydb.connect">
+<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects to the DB.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>(sqlite3.connection, sqlite3.connection.cursor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.flask_server.mydb.delete">
+<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">delete</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the database from the file system. This is a workaround for an in-memory database.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.flask_server.mydb.get_all">
+<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">get_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#get_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.get_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all rows from the “posts” table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>c</strong> – A cursor to a sqlite3 database.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list(row).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.flask_server.mydb.initialize">
+<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">initialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#initialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the DB, creating tables and inserting necessary rows.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.flask_server.mydb.new_post">
+<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">new_post</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#new_post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.new_post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insers a “post” in the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> – A cursor to a sqlite3 database.</p></li>
+<li><p><strong>data</strong> – Values of the row to insert.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 </div>
 </div>
 

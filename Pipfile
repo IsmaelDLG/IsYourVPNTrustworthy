@@ -13,6 +13,7 @@ sphinx-rtd-theme = "*"
 
 [packages]
 flask = "*"
+jaydebeapi = "*"
 
 [requires]
 python_version = "3.6"

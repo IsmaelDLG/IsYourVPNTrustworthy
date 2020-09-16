@@ -1,10 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for
-
 """Server for JS Injection example
 
-Contains a minimal implementation of a server.
+Contains a minimal implementation of a web server, using Flask.
 """
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash
+from pathlib import Path
+from werkzeug.utils import secure_filename
+import db
+
+UPLOAD_FOLDER = Path(__file__).parent.absolute().resolve() / Path('uploads')
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/hello', methods=['GET'])
 def hello_world():
@@ -30,16 +38,45 @@ def hello_name(name):
 @app.route('/', methods = ['GET', 'POST'])
 def index():
     if request.method == 'GET':
-        return render_template('index.html')
+        conn, c = db.connect()
+        posts = db.get_all(c)
+        conn.close()
+        return render_template('index.html', posts=posts)
+
+
+def _allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def _upload_file(myfile):
+    # if user does not select file, browser also
+    # submit an empty part without filename
+    if myfile and _allowed_file(myfile.filename):
+        filename = secure_filename(myfile.filename)
+        myfile.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        return str(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
 @app.route('/upload', methods=['POST'])
-def upload():
-    """ See for more: `Origin <https://stackabuse.com/integrating-h2-with-python-and-flask/>`_
-    """
-    print(request.form['title'])
-    print(request.form['desc'])
-    print(request.form['file'])
-    return redirect(url_for('home'))
+def new_post():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            return redirect(url_for('index'))
+            
+        
+        filepath = _upload_file(request.files['file'])
+        conn, cursor = db.connect()
 
-if __name__ == '__main__':
+        print((request.form['title'], request.form['desc'], filepath, filepath.split('/')[-1:]))
+        db.new_post(cursor, (request.form['title'], request.form['desc'], filepath, filepath.split('/')[-1:]))
+
+        db.close(conn)
+    return redirect(url_for('index'))
+
+
+if __name__ == '__main__':    
+    db.initialize()
     app.run('0.0.0.0', debug=True)
+    db.delete()
+
+    print('\nBye...')

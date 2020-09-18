@@ -38,7 +38,7 @@
           <hr class="my-2">
           <h1>Other posts</h1>
           <div class="card-deck">
-          {% for title, text, path, name in posts %}
+          {% for (title, text, path, name) in posts %}
             <div class="card">
               <img class="card-img-top" src="{{ url_for('static', filename = name ) }}" alt="">
               <div class="card-body">

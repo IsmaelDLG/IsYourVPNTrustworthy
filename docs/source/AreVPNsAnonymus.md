@@ -139,7 +139,7 @@ Nor VPNs, nor most ad-blockers can protect users from this type of tracking. Som
 
 The biggest problem [cookies](#cookies) face is that they can only be read on the domain that created them. This means that AdTech companies can’t read cookies created by other AdTech platforms or by the website itself, essentially limiting their effectiveness for advertising purposes on other websites. This is faced by creating a unique identifier (UID) for each user and sharing it with other companies, like a translation table that gathers each companies ID of that user and translates it to a UID.
 
-![cookie_sync](/home/ismael/myRepos/AreVPNsAnonymus/Images/AreVPNsAnonymus/cookie_sync.png)
+![cookie_sync](Images/AreVPNsAnonymus/cookie_sync.png)
 
 ### Supercookies
 

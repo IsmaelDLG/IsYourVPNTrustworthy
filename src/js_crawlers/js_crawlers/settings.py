@@ -64,7 +64,7 @@ ROBOTSTXT_OBEY = True
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'js_crawlers.pipelines.JsCrawlersPipeline': 300,
-    'js_crawlers.pipelines.JsonWriterPipeline': 400,
+    'js_crawlers.pipelines.FileSaverPipeline': 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

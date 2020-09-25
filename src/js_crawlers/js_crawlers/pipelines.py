@@ -7,20 +7,23 @@
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 import json
-
+import os
 
 class JsCrawlersPipeline:
     def process_item(self, item, spider):
         return item
 
-class JsonWriterPipeline(object):
+class FileSaverPipeline(object):
     def open_spider(self, spider):
-        self.file = open("items.jl", "w")
+        if not os.path.exists('out/'):
+            os.mkdir('out/')
 
     def close_spider(self, spider):
-        self.file.close()
+        pass
 
     def process_item(self, item, spider):
-        line = json.dumps(dict(item)) + "\n"
-        self.file.write(line)
+        url = item['url']
+        page = item['page']
+        with open('out/%s.html' % url.replace('https:', '').replace('/','').replace('.', '-'), 'w') as f:
+            f.write(page)
         return item

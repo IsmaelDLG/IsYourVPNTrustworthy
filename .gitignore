@@ -8,3 +8,5 @@ src/web_crawler/log/
 src/web_crawler/out/
 
 *.sqlite3
+
+src/js_crawlers/out/

@@ -36,7 +36,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Are VPNs Anonymous" href="AreVPNsAnonymus.html" /> 
+    <link rel="prev" title="Are VPNs Safe?" href="AreVPNsSafe.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -85,10 +85,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="AreVPNsAnonymus.html">Are VPNs Anonymous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AreVPNsSafe.html">Are VPNs Safe?</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Code Documentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#js-injection-example">JS Injection Example</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#module-src.flask_server.server">Flask Server</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-src.flask_server.mydb">Database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-src.js_crawlers.js_crawlers.spiders.myspider">Spiders</a></li>
 </ul>
 </li>
 </ul>
@@ -164,8 +165,8 @@
 <ul class="simple">
 <li><dl class="simple">
 <dt><a class="reference internal" href="#js-injection-tag"><span class="std std-ref">JS Injection Example</span></a>.</dt><dd><ul>
-<li><p><a class="reference internal" href="#flask-server-tag"><span class="std std-ref">Flask Server</span></a>.</p></li>
-<li><p><a class="reference internal" href="#database-tag"><span class="std std-ref">Database</span></a>.</p></li>
+<li><p><a class="reference internal" href="#flask-server-tag"><span class="std std-ref">Flask Server</span></a> (Not used).</p></li>
+<li><p><a class="reference internal" href="#spiders-tag"><span class="std std-ref">Spiders</span></a>.</p></li>
 </ul>
 </dd>
 </dl>
@@ -176,7 +177,31 @@
 <div class="section" id="module-src.flask_server.server">
 <span id="flask-server"></span><span id="flask-server-tag"></span><h3>Flask Server<a class="headerlink" href="#module-src.flask_server.server" title="Permalink to this headline">¶</a></h3>
 <p>Server for JS Injection example</p>
-<p>Contains a minimal implementation of a server.</p>
+<p>Contains a minimal implementation of a web server, using Flask. The intention was to 
+use this server to detect JS injection using a custom setup.</p>
+<blockquote>
+<div><p>CLIENT–MID_ROUTER–EMULATED_VPN–SERVER</p>
+</div></blockquote>
+<p>Where the EMULATED_VPN injected JS into the response to track the client. This could
+be detected using the MID computer, that would analyze the HTTP traffic.</p>
+<p>Right now, it is not used.</p>
+<dl class="py function">
+<dt id="src.flask_server.server.close_connection">
+<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">close_connection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exception</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#close_connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.close_connection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes connection to the db.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.flask_server.server.get_db">
+<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">get_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#get_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.get_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a db connection, using sqlite3.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The db connection.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt id="src.flask_server.server.hello_name">
 <code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">hello_name</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#hello_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.hello_name" title="Permalink to this definition">¶</a></dt>
@@ -208,69 +233,84 @@
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-src.flask_server.mydb">
-<span id="database"></span><span id="database-tag"></span><h3>Database<a class="headerlink" href="#module-src.flask_server.mydb" title="Permalink to this headline">¶</a></h3>
-<p>A simple module we use to store data temporally.</p>
-<p>Currently using sqlite3. Sqlite3 comes with a :memory: param that creates the DB in RAM memory, but this is not used because Flask is multithreaded, and sqlite cursors cannot be shared among threads!</p>
 <dl class="py function">
-<dt id="src.flask_server.mydb.close">
-<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">close</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.close" title="Permalink to this definition">¶</a></dt>
-<dd><p>Closes the given connection connection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>conn</strong> – A sqlite3.connection.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="src.flask_server.mydb.connect">
-<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.connect" title="Permalink to this definition">¶</a></dt>
-<dd><p>Connects to the DB.</p>
+<dt id="src.flask_server.server.index">
+<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">index</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main page. Uses index.html template to load.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>(sqlite3.connection, sqlite3.connection.cursor)</p>
+<dd class="field-odd"><p>Index page, using the index.html file.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="src.flask_server.mydb.delete">
-<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">delete</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deletes the database from the file system. This is a workaround for an in-memory database.</p>
+<dt id="src.flask_server.server.init_db">
+<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">init_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#init_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.init_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads schema.sql file and runs it.</p>
+<p>Useful for db initialization, given that no in memory database is used.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="src.flask_server.mydb.get_all">
-<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">get_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#get_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.get_all" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gets all rows from the “posts” table.</p>
+<dt id="src.flask_server.server.new_post">
+<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">new_post</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#new_post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.new_post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a new post into the webserver.</p>
+<p>Posts, as the form specifies, contain a title, a description and an image.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.flask_server.server.query_db">
+<code class="sig-prename descclassname">src.flask_server.server.</code><code class="sig-name descname">query_db</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">args</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">one</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/server.html#query_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.server.query_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the given query on the db.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Query result, one or a list of rows.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-src.js_crawlers.js_crawlers.spiders.myspider">
+<span id="spiders"></span><span id="spiders-tag"></span><h3>Spiders<a class="headerlink" href="#module-src.js_crawlers.js_crawlers.spiders.myspider" title="Permalink to this headline">¶</a></h3>
+<p>Crawler to download all the webpages from the top500 list.</p>
+<p>In this module, all the list is crawled and dowloaded. This is run both in an 
+environment with a VPN and in an environment without one. By downloading the pages, we 
+want to find wether JS is being injected in them or not, and if the VPN is injecting 
+it on us.</p>
+<dl class="py class">
+<dt id="src.js_crawlers.js_crawlers.spiders.myspider.MySpider">
+<em class="property">class </em><code class="sig-prename descclassname">src.js_crawlers.js_crawlers.spiders.myspider.</code><code class="sig-name descname">MySpider</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/js_crawlers/js_crawlers/spiders/myspider.html#MySpider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.js_crawlers.js_crawlers.spiders.myspider.MySpider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Crawler implementation.</p>
+<p>Each spider Scrapy launches executes, by default the method parse. This 
+implementation is very simple, once it gets the page, it returns it. The list of 
+webpages is obtained from the top500 from moz, mentioned above.</p>
+<dl class="py method">
+<dt id="src.js_crawlers.js_crawlers.spiders.myspider.MySpider.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">response</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/js_crawlers/js_crawlers/spiders/myspider.html#MySpider.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.js_crawlers.js_crawlers.spiders.myspider.MySpider.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url and the html of the page, encapsulated in a Page object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="src.js_crawlers.js_crawlers.spiders.myspider.Page">
+<em class="property">class </em><code class="sig-prename descclassname">src.js_crawlers.js_crawlers.spiders.myspider.</code><code class="sig-name descname">Page</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/js_crawlers/js_crawlers/spiders/myspider.html#Page"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.js_crawlers.js_crawlers.spiders.myspider.Page" title="Permalink to this definition">¶</a></dt>
+<dd><p>Our own Item object.</p>
+<p>Scrapy can return Items from spiders. The item class has been adapted to our needs.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="src.js_crawlers.js_crawlers.spiders.myspider.get_website_list">
+<code class="sig-prename descclassname">src.js_crawlers.js_crawlers.spiders.myspider.</code><code class="sig-name descname">get_website_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filepath</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span> &#x2192; list<a class="reference internal" href="_modules/src/js_crawlers/js_crawlers/spiders/myspider.html#get_website_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.js_crawlers.js_crawlers.spiders.myspider.get_website_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method parses the document obtained from <a class="reference external" href="https://moz.com/top500">https://moz.com/top500</a> into a list 
+object that contains the urls. The .csv file must use the ‘,’ character as 
+separator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>c</strong> – A cursor to a sqlite3 database.</p>
+<dd class="field-odd"><p><strong>filepath</strong> – Path to the .csv file that contains the list.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>list(row).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="src.flask_server.mydb.initialize">
-<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">initialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#initialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.initialize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initializes the DB, creating tables and inserting necessary rows.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="src.flask_server.mydb.new_post">
-<code class="sig-prename descclassname">src.flask_server.mydb.</code><code class="sig-name descname">new_post</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/flask_server/mydb.html#new_post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.flask_server.mydb.new_post" title="Permalink to this definition">¶</a></dt>
-<dd><p>Insers a “post” in the database.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>c</strong> – A cursor to a sqlite3 database.</p></li>
-<li><p><strong>data</strong> – Values of the row to insert.</p></li>
-</ul>
+<dd class="field-even"><p>A list of URLs, as strings.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -288,7 +328,7 @@
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="AreVPNsAnonymus.html" class="btn btn-neutral float-left" title="Are VPNs Anonymous" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="AreVPNsSafe.html" class="btn btn-neutral float-left" title="Are VPNs Safe?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

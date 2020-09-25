@@ -1,6 +1,14 @@
 """Server for JS Injection example
 
-Contains a minimal implementation of a web server, using Flask.
+Contains a minimal implementation of a web server, using Flask. The intention was to 
+use this server to detect JS injection using a custom setup.
+    
+                    CLIENT--MID_ROUTER--EMULATED_VPN--SERVER
+
+Where the EMULATED_VPN injected JS into the response to track the client. This could
+be detected using the MID computer, that would analyze the HTTP traffic.
+
+Right now, it is not used.
 """
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
@@ -15,7 +23,7 @@ DATABASE = str(Path(__file__).parent.absolute().resolve() / Path("db.sqlite3"))
 
 
 UPLOAD_FOLDER = Path(__file__).parent.absolute().resolve() / Path("static")
-ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif"}
+ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "gif"}
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -46,15 +54,21 @@ def hello_name(name):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """Main page. Uses index.html template to load.
+    
+    :return: Index page, using the index.html file.
+    """
     if request.method == "GET":
         return render_template("index.html", posts=query_db("SELECT * FROM posts"))
 
 
 def _allowed_file(filename):
+    """Checks wether file is an image."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def _upload_file(myfile):
+    """Saves file and returns path."""
     # if user does not select file, browser also
     # submit an empty part without filename
     if myfile and _allowed_file(myfile.filename):
@@ -70,6 +84,10 @@ def _upload_file(myfile):
 
 @app.route("/upload", methods=["POST"])
 def new_post():
+    """Makes a new post into the webserver.
+
+    Posts, as the form specifies, contain a title, a description and an image.
+    """
     if request.method == "POST":
         # check if the post request has the file part
         if "file" not in request.files:
@@ -89,6 +107,10 @@ def new_post():
 # Database stuff
 
 def init_db():
+    """Reads schema.sql file and runs it.
+
+    Useful for db initialization, given that no in memory database is used.
+    """
     with app.app_context():
         db = get_db()
         with app.open_resource('schema.sql', mode='r') as f:
@@ -96,18 +118,22 @@ def init_db():
         db.commit()
 
 def get_db():
+    """Return a db connection, using sqlite3.
+    
+    :return: The db connection.
+    """
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
-    
-        """def _make_dicts(cursor, row):
-            return dict((cursor.description[idx][0], value) for idx, value in enumerate(row))
-        """
         db.row_factory = sqlite3.Row
 
     return db
 
 def query_db(query, args=(), one=False):
+    """Performs the given query on the db.
+    
+    :return: Query result, one or a list of rows.
+    """
     cur = get_db().execute(query, args)
     rv = cur.fetchall()
     cur.close()
@@ -115,6 +141,7 @@ def query_db(query, args=(), one=False):
 
 @app.teardown_appcontext
 def close_connection(exception):
+    """Closes connection to the db."""
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()

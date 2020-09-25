@@ -12,6 +12,7 @@ Welcome to Is your VPN trustworthy's documentation!
 
    installation
    AreVPNsAnonymus
+   AreVPNsSafe
    code_documentation
 
 Indices and tables

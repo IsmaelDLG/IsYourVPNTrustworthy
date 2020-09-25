@@ -4,12 +4,11 @@ class MyObjeto:
         self.atrobuto2 = None
 
     def myFuncion(self):
-        return {
-            'binance' : "es lo mejor"
-        }
+        return {"binance": "es lo mejor"}
+
 
 variable = MyObjeto()
 
-mylista  = variable.myFuncion()
+mylista = variable.myFuncion()
 
 print(mylista["binance"])

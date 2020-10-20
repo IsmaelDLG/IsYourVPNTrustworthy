@@ -1,0 +1,27 @@
+1601617410212	geckodriver	INFO	Listening on 127.0.0.1:45381
+1601617410229	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "--marionette" "-foreground" "-no-remote" "-profile" "/tmp/rust_mozprofileo4VzmU"
+console.error: SearchCache: "_readCacheFile: Error reading cache file:" (new Error("", "(unknown module)"))
+1601617412787	Marionette	INFO	Listening on port 43263
+1601617412835	Marionette	WARN	TLS certificate errors will be ignored for this session
+JavaScript error: resource://gre/actors/AutoCompleteChild.jsm, line 235: Error: Invalid autocomplete selectedIndex
+1601617414520	Marionette	INFO	Stopped listening on port 43263
+JavaScript error: resource://gre/modules/UrlClassifierListManager.jsm, line 691: TypeError: this.tablesData[table] is undefined
+JavaScript error: resource://gre/modules/Sqlite.jsm, line 928: Error: Connection is not open.
+1601617513564	geckodriver	INFO	Listening on 127.0.0.1:37767
+1601617513568	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "--marionette" "-foreground" "-no-remote" "-profile" "/tmp/rust_mozprofileWfXXE2"
+console.error: SearchCache: "_readCacheFile: Error reading cache file:" (new Error("", "(unknown module)"))
+1601617515396	Marionette	INFO	Listening on port 39071
+1601617515476	Marionette	WARN	TLS certificate errors will be ignored for this session
+JavaScript error: resource://gre/actors/AutoCompleteChild.jsm, line 235: Error: Invalid autocomplete selectedIndex
+JavaScript warning: moz-extension://bb1abe2d-74a5-4d5b-94c0-f760c6167b94/background/background.js, line 353: unreachable code after return statement
+JavaScript warning: moz-extension://bb1abe2d-74a5-4d5b-94c0-f760c6167b94/background/background.js, line 353: unreachable code after return statement
+JavaScript error: , line 0: AbortError: Actor 'Conduits' destroyed before query 'RunListener' was resolved
+JavaScript error: , line 0: AbortError: Actor 'Conduits' destroyed before query 'RunListener' was resolved
+JavaScript error: , line 0: AbortError: Actor 'Conduits' destroyed before query 'RunListener' was resolved
+1601617570801	Marionette	INFO	Stopped listening on port 39071
+1601617573021	geckodriver	INFO	Listening on 127.0.0.1:35135
+1601617573024	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "--marionette" "-foreground" "-no-remote" "-profile" "/tmp/rust_mozprofile4OpQ66"
+console.error: SearchCache: "_readCacheFile: Error reading cache file:" (new Error("", "(unknown module)"))
+1601617575116	Marionette	INFO	Listening on port 34977
+1601617575130	Marionette	WARN	TLS certificate errors will be ignored for this session
+1601617599867	Marionette	INFO	Stopped listening on port 34977

@@ -16,6 +16,7 @@ flask = "*"
 jaydebeapi = "*"
 scrapy = "*"
 selenium = "*"
+bs4 = "*"
 
 [requires]
 python_version = "3.6"

@@ -1,8 +1,8 @@
 import sys
 import os
-
-_START_TAG = b"<script"
-_END_TAG = b"</script>"
+import time
+from bs4 import BeautifulSoup
+import json
 
 if len(sys.argv) < 2 or not (os.path.exists(sys.argv[1])):
     print("")
@@ -28,31 +28,31 @@ for dir in args:
     else:
         raise FileNotFoundError("Could not find input directory %s!" % dir)
 
+# Get Scripts
+result = {}
 for dir in dir_list:
     for filename in os.listdir(dir):
-        print("Check file %s" % dir + os.path.sep + filename)
-        with open("%s-%s.%s" % (out_name, dir[:-1], out_ext), 'a') as ffd:
-                        ffd.write("##########%s##########\n" % filename)
-        with open(os.path.abspath(dir) + os.path.sep + filename, 'rb') as fd:
-            line = fd.readline()
-            beg = end = None
-            count = 0
-            while line != b"":
-                if beg is None:
-                    beg = line.find(_START_TAG)
-                    if beg == -1:
-                        beg = None 
-                if beg is not None:
-                    end = line.find(_END_TAG)
-                    if end == -1:
-                        end = None
-                if beg is not None and end is not None:
-                    last = fd.tell()
-                    fd.seek(count + beg,0)
-                    target = fd.read(end-beg + len(_END_TAG))
-                    fd.seek(last, 0)
-                    with open("%s-%s.%s" % (out_name, dir[:-1], out_ext), 'a') as ffd:
-                        ffd.write(target.decode() + '\n' + '#'*10 + '\n')
-                    beg = end = None
-                count = count + len(line)
-                line = fd.readline()
+        
+        if result.get(filename, None) is None:
+            result[filename] = {}
+
+        with open(os.path.abspath(dir) + os.path.sep + filename, 'r') as fd:
+            soup = BeautifulSoup(fd.read(), 'html.parser')
+            aux = []
+            [aux.append(str(x)) for x in soup.find_all('script')]
+            result[filename][dir] = aux
+
+# Check if everyone has the same scripts
+for name in result:
+    equal = True
+    last = None
+    for dir in result[name]:
+        if last is not None:
+            equal = (last == result[name][dir])
+        else:
+            last = result[name][dir]
+
+    result[name]["equal"] = equal
+
+with open ("%s-%i.json" % ("&".join(dir_list), time.time()), 'w') as f:
+    json.dump(result, f, indent=4)

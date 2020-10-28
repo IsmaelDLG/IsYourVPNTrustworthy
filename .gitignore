@@ -12,3 +12,9 @@ src/web_crawler/out/
 src/js_crawlers/out/
 
 *.html
+
+src/selenium/geckodriver
+
+src/selenium/chromedriver
+
+*.log

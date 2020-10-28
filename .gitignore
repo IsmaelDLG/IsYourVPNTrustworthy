@@ -18,3 +18,5 @@ src/selenium/geckodriver
 src/selenium/chromedriver
 
 *.log
+
+*.exe

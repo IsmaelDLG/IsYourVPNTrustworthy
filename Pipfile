@@ -48,6 +48,7 @@ Scrapy = "==2.4.0"
 service_identity = "==18.1.0"
 Twisted = "==20.3.0"
 Werkzeug = "==1.0.1"
+chardet = "*"
 
 [requires]
 python_version = "3.8"

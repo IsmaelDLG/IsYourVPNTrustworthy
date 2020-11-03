@@ -28,7 +28,7 @@ for dir in args:
     else:
         raise FileNotFoundError("Could not find input directory %s!" % dir)
 
-# Get Scripts
+# Get Scripts and IFrames
 result = {}
 for dir in dir_list:
     for filename in os.listdir(dir):
@@ -38,9 +38,13 @@ for dir in dir_list:
 
         with open(os.path.abspath(dir) + os.path.sep + filename, 'r') as fd:
             soup = BeautifulSoup(fd.read(), 'html.parser')
-            aux = []
-            [aux.append(str(x)) for x in soup.find_all('script')]
-            result[filename][dir] = aux
+            scripts = []
+            [scripts.append(str(x)) for x in soup.find_all('script')]
+            iframes = []
+            [iframes.append(str(x)) for x in soup.find_all('iframe')]
+            result[filename][dir] = {}
+            result[filename][dir]['scripts'] = scripts
+            result[filename][dir]['iframes'] = iframes
 
 # Check if everyone has the same scripts
 for name in result:

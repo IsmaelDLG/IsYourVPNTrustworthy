@@ -5,14 +5,20 @@
 
     "description": "Dowloads pages in background.",
 
-    "content_script": [
+    "background": {
+        "scripts": ["download_page.js"]
+    },
+
+    "content_scripts": [
         {
-            "matches": ["*"],
-            "js": ["dowload_page.js"]
+            "matches": ["<all_urls>"],
+            "js": ["get_page.js"]
         }
     ],
 
     "permissions": [
-
+        "tabs",
+		"downloads",
+		"<all_urls>"
     ]
 }

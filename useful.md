@@ -1,5 +1,10 @@
 # Some useful links
+## Build your own mozilla add-on
+https://www.youtube.com/watch?v=9NY3wx9iEzY
+
 ## TLS Interception
+
+See zotero for an article on TLS Interception!
 
 https://wiki.openrightsgroup.org/wiki/TLS_interception
 

@@ -1,3 +1,8 @@
+"""Selenium Crawler Module.
+
+This module is used to look for javascript injection from the extension vpns availible.
+"""
+
 import os, sys, zipfile, time, json
 
 import chardet    
@@ -35,14 +40,9 @@ def get_website_list(filepath: str) -> list:
 
     return clean_list
 
-def ini_driver():
-    """Starts with the configuration, returns a web driver."""
-
-    exe_path = Path("./chromedriver")
-    os.environ["webdriver.chrome.driver"] = str(exe_path)
-
-    ext_dir = Path('extension')
-    ext_file = Path('extension.zip')
+def prepare_extension():
+    ext_dir = Path('myextension')
+    ext_file = Path('myextension.zip')
 
     # Create zipped extension
     ## Read in your extension files
@@ -57,27 +57,24 @@ def ini_driver():
         for fn, content in file_dict.items():
             zf.writestr(fn, content)
 
-    chrome_options = Options()
-    chrome_options.add_extension(ext_file)
-    chrome_options.add_argument("--enable-benchmarking")
+    return ext_file
 
-    driver = webdriver.Chrome(executable_path=exe_path, options=chrome_options)
-    return driver
+def ini_driver(browser):
+    """Starts with the configuration, returns a web driver."""
 
-def run_bot(driver):
-    """Main method.
+    ext_file = prepare_extension()
+
+    if browser == "chrome":
+        exe_path = Path("./chromedriver")
+        os.environ["webdriver.chrome.driver"] = str(exe_path)
+
+        chrome_options = Options()
+        chrome_options.add_extension(ext_file)
+        chrome_options.add_argument("--enable-benchmarking")
+
+        driver = webdriver.Chrome(executable_path=exe_path, options=chrome_options)
     
-    Downloads each of the pages in the 500 list and finds scripts and iframes.
-    """
-    mylist = get_website_list(Path('top500Domains.csv'))
-    for web in mylist:
-        print(web)
-        try:
-            driver.get(web)
-        except:
-            continue
-        time.sleep(5)
-    driver.quit()
+    return driver
 
 def get_scripts_and_iframes(dir_list):
     # Get Scripts and IFrames
@@ -105,8 +102,27 @@ def get_scripts_and_iframes(dir_list):
 
     return result
 
-# Check if everyone has the same scripts
+
+def run_bot(driver):
+    """Main method.
+    
+    Downloads each of the pages in the 500 list and finds scripts and iframes.
+    """
+    mylist = get_website_list(Path('top500Domains.csv'))
+    for web in mylist:
+        print(web)
+        try:
+            driver.get(web)
+        except:
+            continue
+        time.sleep(5)
+    driver.quit()
+
 def validate_results(data):
+    """Checks wether a VPN has injected code into a certain webpage.
+
+    NOT IMPLEMENTED
+    """
     for name in data:
         equal = True
         last = None
@@ -124,7 +140,8 @@ def write_results(result):
         json.dump(result, f, indent=4)
 
 if __name__ == '__main__':
-    # driver = ini_driver()
-    # run_bot(driver)
-    write_results(get_scripts_and_iframes(['C:\\Users\\ismae\\Downloads']))
+    driver = ini_driver("chrome")
+    run_bot(driver)
+    result = get_scripts_and_iframes(['C:\\Users\\ismae\\Downloads'])
+    write_results(result)
 

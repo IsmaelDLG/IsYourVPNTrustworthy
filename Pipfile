@@ -49,6 +49,7 @@ service_identity = "==18.1.0"
 Twisted = "==20.3.0"
 Werkzeug = "==1.0.1"
 chardet = "*"
+sphinx = "*"
 
 [requires]
 python_version = "3.8"

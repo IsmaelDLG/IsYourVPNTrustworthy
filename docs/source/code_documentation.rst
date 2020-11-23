@@ -33,4 +33,4 @@ Spiders
 Selenium crawler
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: src.selenium.selenium_crawler
+.. automodule:: src.selenium.selenium_crawler 

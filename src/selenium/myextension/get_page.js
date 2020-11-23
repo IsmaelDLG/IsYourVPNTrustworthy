@@ -1,6 +1,3 @@
-trigger_key = 90; //ASCII key code for the letter 'Z'
-contentScriptMessage = "Skinner Said the teachers will crack any minute";
-
 if (window == top) {
  window.addEventListener('load', sendHTML, false); 
 }

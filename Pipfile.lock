@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1ce198ef001822c64e3bffb763890316aeaf95f63690f628cf92fe1f560b7e9b"
+            "sha256": "346bc89033748f9c6b00929db1b7a65211e5d46c845e07dbf578a9a706734e97"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -336,7 +336,6 @@
                 "sha256:f98b6f256be6cec8dd308a8563976ddaff0bdc18b730720f6f4bee927ffe926f"
             ],
             "index": "pypi",
-            "markers": "platform_python_implementation == 'CPython'",
             "version": "==4.6.1"
         },
         "markupsafe": {
@@ -713,5 +712,19 @@
             "version": "==5.1.2"
         }
     },
-    "develop": {}
+    "develop": {
+        "crxmake": {
+            "hashes": [
+                "sha256:90d9a970a72fe6062012a22caf87b918ea5c4f0be7a0dcf5c429fc70625c2ef2"
+            ],
+            "index": "pypi",
+            "version": "==0.0.3"
+        },
+        "m2crypto": {
+            "hashes": [
+                "sha256:1542c18e3ee5c01db5031d0b594677536963e3f54ecdf5315aeecb3a595b4dc1"
+            ],
+            "version": "==0.36.0"
+        }
+    }
 }

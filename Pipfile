@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+crxmake = "*"
 
 [packages]
 attrs = "==20.2.0"
@@ -49,7 +50,7 @@ service_identity = "==18.1.0"
 Twisted = "==20.3.0"
 Werkzeug = "==1.0.1"
 chardet = "*"
-sphinx = "*"
+Sphinx = "*"
 
 [requires]
 python_version = "3.8"

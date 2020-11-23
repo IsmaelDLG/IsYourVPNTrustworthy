@@ -41,8 +41,8 @@ def get_website_list(filepath: str) -> list:
     return clean_list
 
 def prepare_extension():
-    ext_dir = Path('myextension')
-    ext_file = Path('myextension.zip')
+    ext_dir = Path('myextension').absolute()
+    ext_file = Path('myextension.crx').absolute()
 
     # Create zipped extension
     ## Read in your extension files
@@ -57,7 +57,7 @@ def prepare_extension():
         for fn, content in file_dict.items():
             zf.writestr(fn, content)
 
-    return ext_file
+    return str(ext_file)
 
 def ini_driver(browser):
     """Starts with the configuration, returns a web driver."""
@@ -65,12 +65,15 @@ def ini_driver(browser):
     ext_file = prepare_extension()
 
     if browser == "chrome":
-        exe_path = Path("./chromedriver")
+        exe_path = Path("./chromedriver").absolute()
         os.environ["webdriver.chrome.driver"] = str(exe_path)
 
         chrome_options = Options()
         chrome_options.add_extension(ext_file)
-        chrome_options.add_argument("--enable-benchmarking")
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        # chrome_options.add_argument("--enable-benchmarking")
 
         driver = webdriver.Chrome(executable_path=exe_path, options=chrome_options)
     
@@ -101,7 +104,6 @@ def get_scripts_and_iframes(dir_list):
                     result[filename][dir]['iframes'] = iframes
 
     return result
-
 
 def run_bot(driver):
     """Main method.
@@ -142,6 +144,7 @@ def write_results(result):
 if __name__ == '__main__':
     driver = ini_driver("chrome")
     run_bot(driver)
-    result = get_scripts_and_iframes(['C:\\Users\\ismae\\Downloads'])
+    # result = get_scripts_and_iframes(['C:\\Users\\ismae\\Downloads'])
+    result = get_scripts_and_iframes(['/home/ismael/Downloads'])
     write_results(result)
 

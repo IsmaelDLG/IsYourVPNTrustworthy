@@ -5,12 +5,13 @@ This module is used to look for javascript injection from the extension vpns ava
 
 import os, sys, zipfile, time, json
 
-import chardet    
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from pathlib import Path
+
+##### UTILS #####
 
 def get_website_list(filepath: str) -> list:
     """This method parses the document obtained from https://moz.com/top500 into a list 
@@ -40,70 +41,37 @@ def get_website_list(filepath: str) -> list:
 
     return clean_list
 
-def prepare_extension():
-    ext_dir = Path('myextension').absolute()
-    ext_file = Path('myextension.crx').absolute()
+##### CRAWLER CODE #####
 
-    # Create zipped extension
-    ## Read in your extension files
-    file_names = os.listdir(ext_dir)
-    file_dict = {}
-    for fn in file_names:
-        with open(os.path.join(ext_dir, fn), 'r') as infile:
-            file_dict[fn] = infile.read()
+def prepare_extension(ext):
+    ext_files = []
+    ext_files.append(Path('page_dwnld.crx').absolute())
+    if ext:
+        ext_files.append(Path(ext).absolute())
 
-    ## Save files to zipped archive
-    with zipfile.ZipFile(ext_file, 'w') as zf:
-        for fn, content in file_dict.items():
-            zf.writestr(fn, content)
+    return ext_files
 
-    return str(ext_file)
-
-def ini_driver(browser):
+def ini_driver(browser, ext):
     """Starts with the configuration, returns a web driver."""
-
-    ext_file = prepare_extension()
+    
+    # We only need an extension at a time
+    exetensions_path = prepare_extension(ext)
 
     if browser == "chrome":
         exe_path = Path("./chromedriver").absolute()
         os.environ["webdriver.chrome.driver"] = str(exe_path)
 
         chrome_options = Options()
-        chrome_options.add_extension(ext_file)
+        if exetensions_path:
+            for ext in exetensions_path:
+                chrome_options.add_extension(ext)
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        # chrome_options.add_argument("--enable-benchmarking")
 
         driver = webdriver.Chrome(executable_path=exe_path, options=chrome_options)
     
     return driver
-
-def get_scripts_and_iframes(dir_list):
-    # Get Scripts and IFrames
-    result = {}
-    for dir in dir_list:
-        for filename in os.listdir(dir):
-            if not os.path.isdir(os.path.abspath(dir) + os.path.sep + filename):
-                if result.get(filename, None) is None:
-                    result[filename] = {}
-
-                with open(os.path.abspath(dir) + os.path.sep + filename, 'r') as fd:
-                    try:
-                        rawdata = fd.read()
-                    except:
-                        continue
-                    
-                    soup = BeautifulSoup(rawdata, 'html.parser')
-                    scripts = []
-                    [scripts.append(str(x)) for x in soup.find_all('script')]
-                    iframes = []
-                    [iframes.append(str(x)) for x in soup.find_all('iframe')]
-                    result[filename][dir] = {}
-                    result[filename][dir]['scripts'] = scripts
-                    result[filename][dir]['iframes'] = iframes
-
-    return result
 
 def run_bot(driver):
     """Main method.
@@ -117,8 +85,54 @@ def run_bot(driver):
             driver.get(web)
         except:
             continue
-        time.sleep(5)
+        time.sleep(4)
     driver.quit()
+
+def get_scripts_and_iframes(dir_list):
+    # Get Scripts and IFrames
+    result = {}
+    dir = "C:\\Users\\ismae\\Downloads"
+    for filename in os.listdir(dir):
+        if not os.path.isdir(os.path.abspath(dir) + os.path.sep + filename):
+            try:
+                vpn, page = filename.split("###")
+            except:
+                continue
+            if result.get(page, None) is None:
+                result[page] = {}
+
+            with open(os.path.abspath(dir) + os.path.sep + filename, 'r') as fd:
+                try:
+                    rawdata = fd.read()
+                except:
+                    continue
+                
+                soup = BeautifulSoup(rawdata, 'html.parser')
+                scripts = []
+                [scripts.append(str(x)) for x in soup.find_all('script')]
+                iframes = []
+                [iframes.append(str(x)) for x in soup.find_all('iframe')]
+                result[page][vpn] = {}
+                result[page][vpn]['scripts'] = scripts
+                result[page][vpn]['iframes'] = iframes
+
+    return result
+
+##### OUTPUT #####
+def rename_files(dir, pattern):
+    pre_pattern = "###"
+    for f in os.listdir(dir):
+        if not pre_pattern in f:
+            if f.split(".")[-1] == "html":
+                done = False
+                number = 0
+                while not done:
+                    try:
+                        os.rename(dir + os.path.sep + f, dir + os.path.sep + pattern + pre_pattern + str(number) + f)
+                        done = True
+                    except FileExistsError:
+                        number = number +1
+                    
 
 def validate_results(data):
     """Checks wether a VPN has injected code into a certain webpage.
@@ -128,23 +142,43 @@ def validate_results(data):
     for name in data:
         equal = True
         last = None
-        for dir in data[name]:
+        for vpn in data[name]:
             if last is not None:
-                equal = (last == data[name][dir])
+                equal = (last == data[name][vpn])
             else:
-                last = data[name][dir]
+                last = data[name][vpn]
 
         data[name]["equal"] = equal
+    return data
 
 def write_results(result):
     """Writes results to file in CWD in json format."""
     with open ("%i.json" % time.time(), 'w') as f:
         json.dump(result, f, indent=4)
 
+##### MAIN #####
+
 if __name__ == '__main__':
-    driver = ini_driver("chrome")
-    run_bot(driver)
-    # result = get_scripts_and_iframes(['C:\\Users\\ismae\\Downloads'])
-    result = get_scripts_and_iframes(['/home/ismael/Downloads'])
-    write_results(result)
+    if len(sys.argv) >= 2:
+        
+        # Without any extension
+        driver = ini_driver("chrome", None)
+        run_bot(driver)
+        rename_files("C:\\Users\\ismae\\Downloads", "no_vpn")
+        
+        for extension in sys.argv[1:]:
+            driver = ini_driver("chrome", extension)
+            # Give me time to activate the extension manually!
+            wait = True
+            while wait:
+                wait = input("Start? [y/n]: ") != "y"
+            run_bot(driver)
+            rename_files("C:\\Users\\ismae\\Downloads", extension.split(os.path.sep)[-1].split(".")[0])
+        
+        result = get_scripts_and_iframes(["C:\\Users\\ismae\\Downloads"])
+        result = validate_results(result)
+        write_results(result)
+
+        
+
 

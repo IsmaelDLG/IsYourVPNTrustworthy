@@ -3,7 +3,16 @@
 This module is used to look for javascript injection from the extension vpns availible.
 """
 
-import os, sys, zipfile, time, json
+DOWNLOAD_DIR = "C:\\Users\\ismae\\Downloads"
+
+WEBSITE_LIST = Path('topDomains.csv')
+
+RUNS = 1
+
+THREADS_EXT = 1
+
+import os, sys, zipfile, time, json, threading
+from getopt import getopt, GetoptError
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -12,6 +21,10 @@ from selenium.webdriver.chrome.options import Options
 from pathlib import Path
 
 ##### UTILS #####
+
+def _usage():
+    print("\tusage: {file} [-h|l <path_to_list>|r <n_runs>|t <n_threads>] extension_1[, ...])".format(file=__file__))
+    sys.exit(2)
 
 def get_website_list(filepath: str) -> list:
     """This method parses the document obtained from https://moz.com/top500 into a list 
@@ -41,6 +54,20 @@ def get_website_list(filepath: str) -> list:
 
     return clean_list
 
+def rename_files(dir, pattern):
+    pre_pattern = "###"
+    for f in os.listdir(dir):
+        if not pre_pattern in f:
+            if f.split(".")[-1] == "html":
+                done = False
+                number = 0
+                while not done:
+                    try:
+                        os.rename(dir + os.path.sep + f, dir + os.path.sep + pattern + pre_pattern + str(number) + f)
+                        done = True
+                    except FileExistsError:
+                        number = number +1
+
 ##### CRAWLER CODE #####
 
 def prepare_extension(ext):
@@ -56,8 +83,17 @@ def ini_driver(browser, ext):
     
     # We only need an extension at a time
     exetensions_path = prepare_extension(ext)
+    if not ext:
+        ext = "no_vpn"
 
     if browser == "chrome":
+        download_dir = Path("C:\\Users\\ismae\\Downloads\\%s" % ext.split(os.path.sep)[-1].split(".")[0])
+        if not os.path.exists(str(download_dir)):
+            os.mkdir(download_dir)
+        else:
+            os.removedirs(download_dir)
+            os.mkdir(download_dir)
+
         exe_path = Path("./chromedriver").absolute()
         os.environ["webdriver.chrome.driver"] = str(exe_path)
 
@@ -65,22 +101,27 @@ def ini_driver(browser, ext):
         if exetensions_path:
             for ext in exetensions_path:
                 chrome_options.add_extension(ext)
+        # Test
+        
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_experimental_option('useAutomationExtension', False)
-
+        chrome_options.add_experimental_option("prefs", {"download.default_directory" : str(download_dir)})
         driver = webdriver.Chrome(executable_path=exe_path, options=chrome_options)
-    
+
     return driver
 
-def run_bot(driver):
+def run_bot(driver, mylist):
     """Main method.
     
     Downloads each of the pages in the 500 list and finds scripts and iframes.
     """
-    mylist = get_website_list(Path('top500Domains.csv'))
+
+    wait = True
+    while wait:
+        wait = input("Start? [y/n]: ") != "y"
+
     for web in mylist:
-        print(web)
         try:
             driver.get(web)
         except:
@@ -119,21 +160,7 @@ def get_scripts_and_iframes(dir_list):
     return result
 
 ##### OUTPUT #####
-def rename_files(dir, pattern):
-    pre_pattern = "###"
-    for f in os.listdir(dir):
-        if not pre_pattern in f:
-            if f.split(".")[-1] == "html":
-                done = False
-                number = 0
-                while not done:
-                    try:
-                        os.rename(dir + os.path.sep + f, dir + os.path.sep + pattern + pre_pattern + str(number) + f)
-                        done = True
-                    except FileExistsError:
-                        number = number +1
                     
-
 def validate_results(data):
     """Checks wether a VPN has injected code into a certain webpage.
 
@@ -158,27 +185,71 @@ def write_results(result):
 
 ##### MAIN #####
 
+def main_behaviour(list, extension):
+    driver = ini_driver("chrome", extension)
+    run_bot(driver, mylist)
+
+
 if __name__ == '__main__':
+    short_opts = "hl:r:t:"
+    long_opts = ["help", "list=", "runs=", "threads="]
+
+    try:
+        opts, args = getopt(sys.argv[1:], short_opts, long_opts)
+    except Exception:
+        _usage()
+
+    if len(args) < 1:
+        _usage()
+    
+    for opt, arg in opts:
+        if opt in ('-h', '--help') :
+            _usage()
+        elif opt in ('-l', '--list'):
+            try:
+                WEBSITE_LIST = Path(arg).absolute()
+            except:
+                _usage()
+        elif opt in ('-r', '--runs'):
+            try:
+                RUNS = int(arg)
+            except:
+                _usage()
+        elif opt in ('-t', '--threads'):
+            try:
+                THREADS_EXT = int(arg)
+            except:
+                _usage()
+
     if len(sys.argv) >= 2:
         
-        # Without any extension
-        driver = ini_driver("chrome", None)
-        run_bot(driver)
-        rename_files("C:\\Users\\ismae\\Downloads", "no_vpn")
+        extensions = sys.argv[1:]
+        extensions.insert(0, None) # No extension!
         
-        for extension in sys.argv[1:]:
-            driver = ini_driver("chrome", extension)
-            # Give me time to activate the extension manually!
-            wait = True
-            while wait:
-                wait = input("Start? [y/n]: ") != "y"
-            run_bot(driver)
-            rename_files("C:\\Users\\ismae\\Downloads", extension.split(os.path.sep)[-1].split(".")[0])
+        mylist = get_website_list(WEBSITE_LIST)
         
-        result = get_scripts_and_iframes(["C:\\Users\\ismae\\Downloads"])
+        thread_list = []
+        for ext in extensions:
+            
+            # Spawn Threads
+            new_thread = threading.Thread(
+                target=main_behaviour, args=(mylist, ext), daemon=True)
+            new_thread.start()
+            thread_list.append(new_thread)
+        
+        # Wait for all threads to finish
+        for t in thread_list:
+            t.join()
+        
+        check_dirs = []
+        for dir in os.listdir(DOWNLOAD_DIR):
+            if os.path.isdir(DOWNLOAD_DIR + os.path.sep + dir):
+                check_dirs.append(DOWNLOAD_DIR + os.path.sep + dir)
+
+        result = get_scripts_and_iframes(check_dirs)
         result = validate_results(result)
         write_results(result)
-
+    
         
 
 

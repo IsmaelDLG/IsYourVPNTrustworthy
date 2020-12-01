@@ -3,8 +3,10 @@ if (window == top) {
 }
 
 function sendHTML() {
-    console.log("content_script >>> html")
-    html = document.documentElement.cloneNode(true).innerHTML.toString();
+    scripts = document.getElementsByTagName("script");
+    iframes = document.getElementsByTagName("iframe");
+
+    // html = document.documentElement.cloneNode(true).innerHTML.toString();
     chrome.extension.sendRequest({type: "downloadPage", value: { text: html, name: document.title.replace(/ /g, "_").substr(0,10) + ".html"}});
 }
 

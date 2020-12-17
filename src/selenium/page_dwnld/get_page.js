@@ -3,11 +3,22 @@ if (window == top) {
 }
 
 function sendHTML() {
+    result = new Array()
+
     scripts = document.getElementsByTagName("script");
+
+    Array.from(scripts).forEach((el, index) => {
+        result.push(el.outerHTML);
+    });
+
     iframes = document.getElementsByTagName("iframe");
+    Array.from(iframes).forEach((el, index) => {
+        result.push(el.outerHTML);
+    });
+
 
     // html = document.documentElement.cloneNode(true).innerHTML.toString();
-    chrome.extension.sendRequest({type: "downloadPage", value: { text: html, name: document.title.replace(/ /g, "_").substr(0,10) + ".html"}});
+    chrome.extension.sendRequest({type: "downloadPage", value: { text: result, name: document.title.replace(/ /g, "_").substr(0,10) + ".html"}});
 }
 
 chrome.runtime.onMessage.addListener(

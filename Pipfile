@@ -51,6 +51,9 @@ Twisted = "==20.3.0"
 Werkzeug = "==1.0.1"
 chardet = "*"
 Sphinx = "*"
+numpy = "*"
+cython = ">=0.24.1"
+datasketch = "*"
 
 [requires]
 python_version = "3.8"

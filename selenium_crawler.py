@@ -3,14 +3,6 @@
 This module is used to look for javascript injection from the extension vpns availible.
 """
 
-DOWNLOAD_DIR = "C:\\Users\\ismae\\Downloads"
-
-WEBSITE_LIST = Path('topDomains.csv')
-
-RUNS = 1
-
-THREADS_EXT = 1
-
 import os, sys, zipfile, time, json, threading
 from getopt import getopt, GetoptError
 
@@ -20,10 +12,18 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from pathlib import Path
 
+DOWNLOAD_DIR = "C:\\Users\\ismae\\Downloads"
+
+WEBSITE_LIST = Path('topDomains.csv')
+
+RUNS = 1
+
+THREADS_EXT = 1
+
 ##### UTILS #####
 
 def _usage():
-    print("\tusage: {file} [-h|l <path_to_list>|r <n_runs>|t <n_threads>] extension_1[, ...])".format(file=__file__))
+    print("\tusage: {file} [-h|l <path_to_list>|r <n_runs>|t <n_threads>] extension_1[, ...]".format(file=__file__))
     sys.exit(2)
 
 def get_website_list(filepath: str) -> list:
@@ -78,7 +78,7 @@ def prepare_extension(ext):
 
     return ext_files
 
-def ini_driver(browser, ext):
+def ini_driver(crawl_id, browser, ext):
     """Starts with the configuration, returns a web driver."""
     
     # We only need an extension at a time
@@ -90,8 +90,10 @@ def ini_driver(browser, ext):
         download_dir = Path("C:\\Users\\ismae\\Downloads\\%s" % ext.split(os.path.sep)[-1].split(".")[0])
         if not os.path.exists(str(download_dir)):
             os.mkdir(download_dir)
-        else:
-            os.removedirs(download_dir)
+        
+        # run?
+        download_dir = str(download_dir) + os.path.sep + str(Path(str(crawl_id)))
+        if not os.path.exists(str(download_dir)):
             os.mkdir(download_dir)
 
         exe_path = Path("./chromedriver").absolute()
@@ -185,9 +187,20 @@ def write_results(result):
 
 ##### MAIN #####
 
-def main_behaviour(list, extension):
-    driver = ini_driver("chrome", extension)
+def crawl_list(crawl_id, mylist, extension):
+    driver = ini_driver(crawl_id, "chrome", extension)
     run_bot(driver, mylist)
+
+def check_dirs(ini_dir):
+    """Return dirs with html files.
+    """
+    check_dirs = []
+    for vpn_dir in os.listdir(ini_dir):
+        if os.path.isdir(ini_dir + os.path.sep + vpn_dir):
+            for run_dir in os.listdir(ini_dir + os.path.sep + vpn_dir):
+                if os.path.isdir(ini_dir + os.path.sep + vpn_dir + os.path.sep + run_dir):
+                    check_dirs.append(ini_dir + os.path.sep + vpn_dir + os.path.sep + run_dir)
+    return check_dirs
 
 
 if __name__ == '__main__':
@@ -221,35 +234,43 @@ if __name__ == '__main__':
             except:
                 _usage()
 
-    if len(sys.argv) >= 2:
-        
-        extensions = sys.argv[1:]
-        extensions.insert(0, None) # No extension!
-        
-        mylist = get_website_list(WEBSITE_LIST)
-        
+    extensions = []
+    for extension in args:
+        extensions.append(str(Path(extension).absolute()))
+
+    extensions.insert(0, None) # No extension!
+    
+    mylist = get_website_list(WEBSITE_LIST)
+    
+    for run in range(RUNS):
+        timestamp_run = time.time()
         thread_list = []
         for ext in extensions:
-            
-            # Spawn Threads
-            new_thread = threading.Thread(
-                target=main_behaviour, args=(mylist, ext), daemon=True)
-            new_thread.start()
-            thread_list.append(new_thread)
+            step = len(mylist)/THREADS_EXT
+            for thread in range(THREADS_EXT):
+                # Spawn Threads
+                print("Thread %i:" % thread)
+                current = int(step*thread)
+                end = int(current + step - 1)
+                print(current, end)
+                print(mylist[current:end])
+                new_thread = threading.Thread(
+                    target=crawl_list, args=(timestamp_run, mylist[current:end], ext), daemon=True)
+                new_thread.start()
+                thread_list.append(new_thread)
         
         # Wait for all threads to finish
         for t in thread_list:
             t.join()
-        
-        check_dirs = []
-        for dir in os.listdir(DOWNLOAD_DIR):
-            if os.path.isdir(DOWNLOAD_DIR + os.path.sep + dir):
-                check_dirs.append(DOWNLOAD_DIR + os.path.sep + dir)
 
-        result = get_scripts_and_iframes(check_dirs)
-        result = validate_results(result)
-        write_results(result)
-    
+    """ 
+    dirs = check_dirs(DOWNLOAD_DIR)
+
+    result = get_scripts_and_iframes(dirs)
+    result = validate_results(result)
+    write_results(result)
+    """
         
 
 
+# python .\selenium_crawler.py --runs 8 --threads 2 ..\resources\extensions\chrome\1click.crx ..\resources\extensions\chrome\adguard.crx ..\resources\extensions\chrome\astard.crx ..\resources\extensions\chrome\betternet.crx ..\resources\extensions\chrome\browsec.crx ..\resources\extensions\chrome\daily.crx ..\resources\extensions\chrome\dot.crx ..\resources\extensions\chrome\earth.crx ..\resources\extensions\chrome\express.crx ..\resources\extensions\chrome\free.pro.crx ..\resources\extensions\chrome\hola.crx ..\resources\extensions\chrome\hotspot.crx ..\resources\extensions\chrome\hoxx.crx ..\resources\extensions\chrome\ip_unblock.crx ..\resources\extensions\chrome\ivacy.crx ..\resources\extensions\chrome\phoenix.crx ..\resources\extensions\chrome\pp.crx ..\resources\extensions\chrome\prime.crx ..\resources\extensions\chrome\pron.crx

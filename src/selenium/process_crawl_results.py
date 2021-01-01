@@ -1,38 +1,52 @@
-from lsh import minhash
+from datasketch import MinHash, MinHashLSH
 import sys, os, json, time
 
 INPUT_DIR = "C:\\Users\\ismae\\Downloads"
 HASHER = minhash.MinHasher(seeds=1000, char_ngram=5)
 
+NUM_PERM = 128
+THRESHOLD = 0.5
+
 def _usage():
     print("\tusage: {file} [-h|d <directory>]".format(file=__file__))
     sys.exit(2)
 
-def hash_file(str_path):
-    """Makes the hash of the given file.
+def create_set(filename, granularity=0, encode="utf8"):
+    """Creates a set for to use in a MinHash from the given filename. 
+    Splits the file in groups of characters according to the given 
+    granularity (0 means each group represents a line of the file). 
+    Uses given encoding.
     """
-    text = b""
-    try:
-        with open(str_path, 'rb') as fd:
-            text = fd.read()
-    except:
-        print("Error with file %s" % str_path)
 
-    return HASHER.fingerprint(text)
+    res = []
+    
+    with open(filename, 'rb', encoding=encode) as fd:
+        if granularity == 0:
+            res = fd.readlines()
+        elif:
+            aux = fd.read()
+            # Appends items to the res list using the given granularity
+            [res.append(aux[i:i+granularity-1]) for i in range(0, len(aux), granularity)]
+    
+    return set(res)
 
-def compare(hash1, hash2):
-    """Compares two hashes and returns the similarity.
+def create_minhash(a_set, perms=PERMUTATIONS):
+    """Returns a minhash of the given set using the permutation number given.
     """
-    return sum(hash1[i] in hash2 for i in range(HASHER.num_seeds)) / HASHER.num_seeds
 
+    a_minhash = MinHash(num_perm=NUM_PERM)
 
-def compare_hash(target, others):
-    """Compares the target hash with the rest of the documents, and returns a dic of the similarity for each hash.
+    for group in a_set:
+        a_minhash.update(group)
+
+    return a_minhash
+
+def compare(minhash_list):
+    """Returns the similarity betweeen the differents sets, using the Jaccard algorithm.
     """
-    ret = {}
-    for sample in others:
-        ret[sample] = compare(target, sample)
-    return ret
+    
+
+
 
 
 if __name__ == '__main__':
@@ -56,20 +70,7 @@ if __name__ == '__main__':
             except:
                 _usage()
     
-    hash_list = []
-    json_result = {}
-    for comparable in os.listdir(INPUT_DIR):
-        filename = INPUT_DIR + os.path.sep + comparable
-        a_hash = hash_file(filename)
-        json_result[a_hash] = {}
-        json_result[a_hash]["filename"] = filename
-        hash_list.append(a_hash)
     
-    for h in hash_list:
-        json_result[h]["comparisons"] = compare_hash(h, hash_list.remove(h))
-
-    with open (INPUT_DIR + os.path.sep + "result-%i.json" % int(time.time()), 'r') as fd:
-         json.dump(json_result, fd, indent=2)
 
             
 

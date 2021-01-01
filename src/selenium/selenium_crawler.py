@@ -262,15 +262,5 @@ if __name__ == '__main__':
         # Wait for all threads to finish
         for t in thread_list:
             t.join()
-
-    """ 
-    dirs = check_dirs(DOWNLOAD_DIR)
-
-    result = get_scripts_and_iframes(dirs)
-    result = validate_results(result)
-    write_results(result)
-    """
         
-
-
 # python .\selenium_crawler.py --runs 8 --threads 2 ..\resources\extensions\chrome\1click.crx ..\resources\extensions\chrome\adguard.crx ..\resources\extensions\chrome\astard.crx ..\resources\extensions\chrome\betternet.crx ..\resources\extensions\chrome\browsec.crx ..\resources\extensions\chrome\daily.crx ..\resources\extensions\chrome\dot.crx ..\resources\extensions\chrome\earth.crx ..\resources\extensions\chrome\express.crx ..\resources\extensions\chrome\free.pro.crx ..\resources\extensions\chrome\hola.crx ..\resources\extensions\chrome\hotspot.crx ..\resources\extensions\chrome\hoxx.crx ..\resources\extensions\chrome\ip_unblock.crx ..\resources\extensions\chrome\ivacy.crx ..\resources\extensions\chrome\phoenix.crx ..\resources\extensions\chrome\pp.crx ..\resources\extensions\chrome\prime.crx ..\resources\extensions\chrome\pron.crx

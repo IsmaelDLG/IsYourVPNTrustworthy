@@ -41,10 +41,28 @@ def create_minhash(a_set, perms=PERMUTATIONS):
 
     return a_minhash
 
-def compare(minhash_list):
-    """Returns the similarity betweeen the differents sets, using the Jaccard algorithm.
+def compare_single(minhash_list):
+    """Returns a list with the jaccard similarity of the sets with the rest of the neighbours.
     """
     
+    for mh in minhash_list:
+        aux = minhash_list
+        aux.remove(mh)
+        counter = 0
+        avg = 0
+        for neighbour in aux:
+            avg = avg + mh.jaccard(neighbour)
+            count = count + 1
+        avg = avg / count
+
+def compare_merged(minhash_list)
+    """Returns a the jaccard similarity of the sets.
+    """
+    
+    jaccards = compare_single(minhash_list)
+    avg = 0
+    [avg = avg + x for x in jaccards]
+    return avg / len(jaccards)
 
 
 

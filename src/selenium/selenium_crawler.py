@@ -12,9 +12,12 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from pathlib import Path
 
+from sort_files import sort
+from fancy_hash import calc_proximity_one, calc_proximity_two
+
 DOWNLOAD_DIR = "C:\\Users\\ismae\\Downloads"
 
-WEBSITE_LIST = Path('topDomains.csv')
+WEBSITE_LIST = Path('top500Domains.csv')
 
 RUNS = 1
 
@@ -233,27 +236,25 @@ if __name__ == '__main__':
                 THREADS_EXT = int(arg)
             except:
                 _usage()
-
+    
     extensions = []
     for extension in args:
         extensions.append(str(Path(extension).absolute()))
-
+    
     extensions.insert(0, None) # No extension!
     
     mylist = get_website_list(WEBSITE_LIST)
-    
-    for run in range(RUNS):
+
+    if RUNS > 1:
+    else:   
         timestamp_run = time.time()
         thread_list = []
         for ext in extensions:
             step = len(mylist)/THREADS_EXT
             for thread in range(THREADS_EXT):
                 # Spawn Threads
-                print("Thread %i:" % thread)
                 current = int(step*thread)
                 end = int(current + step - 1)
-                print(current, end)
-                print(mylist[current:end])
                 new_thread = threading.Thread(
                     target=crawl_list, args=(timestamp_run, mylist[current:end], ext), daemon=True)
                 new_thread.start()
@@ -262,5 +263,37 @@ if __name__ == '__main__':
         # Wait for all threads to finish
         for t in thread_list:
             t.join()
+
+    sort(DOWNLOAD_DIR)
+    full_result = {}
+    simplified_result = {}
+    for root in os.listdir(DOWNLOAD_DIR):
+        full_result[root] = {}
+        simplified_result[root] = {}
+        # Case dir
+        case = DOWNLOAD_DIR + os.path.sep + root
+        if not os.path.isdir(case):
+                continue
+        for group in os.listdir(case):
+            if not os.path.isdir(case + os.path.sep + group):
+                continue
+            if group.startswith("file-"):
+                part_avg, part_data = calc_proximity_one(case + os.path.sep + group)
+                full_result[root][group] = part_data
+                simplified_result[root][group] = part_avg
+    
+    with open(DOWNLOAD_DIR + os.path.sep + 'analysis01_full.json', 'w') as f:
+        json.dump(full_result, f, indent=2)
+    with open(DOWNLOAD_DIR + os.path.sep + 'analysis01_short.json', 'w') as f:
+        json.dump(simplified_result, f, indent=2)
+    
+    res2 = calc_proximity_two(DOWNLOAD_DIR)
+    with open(DOWNLOAD_DIR + os.path.sep + 'analysis02.json', 'w') as f:
+        json.dump(res2, f, indent=2)
+
+    
+
         
-# python .\selenium_crawler.py --runs 8 --threads 2 ..\resources\extensions\chrome\1click.crx ..\resources\extensions\chrome\adguard.crx ..\resources\extensions\chrome\astard.crx ..\resources\extensions\chrome\betternet.crx ..\resources\extensions\chrome\browsec.crx ..\resources\extensions\chrome\daily.crx ..\resources\extensions\chrome\dot.crx ..\resources\extensions\chrome\earth.crx ..\resources\extensions\chrome\express.crx ..\resources\extensions\chrome\free.pro.crx ..\resources\extensions\chrome\hola.crx ..\resources\extensions\chrome\hotspot.crx ..\resources\extensions\chrome\hoxx.crx ..\resources\extensions\chrome\ip_unblock.crx ..\resources\extensions\chrome\ivacy.crx ..\resources\extensions\chrome\phoenix.crx ..\resources\extensions\chrome\pp.crx ..\resources\extensions\chrome\prime.crx ..\resources\extensions\chrome\pron.crx
+# python .\selenium_crawler.py --runs 8 --threads 2 ..\resources\extensions\chrome\1click.crx ..\resources\extensions\chrome\astard.crx ..\resources\extensions\chrome\betternet.crx ..\resources\extensions\chrome\browsec.crx ..\resources\extensions\chrome\daily.crx ..\resources\extensions\chrome\earth.crx ..\resources\extensions\chrome\free.pro.crx ..\resources\extensions\chrome\hotspot.crx ..\resources\extensions\chrome\ivacy.crx ..\resources\extensions\chrome\phoenix.crx ..\resources\extensions\chrome\pp.crx ..\resources\extensions\chrome\prime.crx ..\resources\extensions\chrome\pron.crx
+# python .\selenium_crawler.py --runs 10 ..\resources\extensions\chrome\1click.crx ..\resources\extensions\chrome\astard.crx ..\resources\extensions\chrome\betternet.crx ..\resources\extensions\chrome\browsec.crx ..\resources\extensions\chrome\earth.crx ..\resources\extensions\chrome\free.pro.crx ..\resources\extensions\chrome\hotspot.crx ..\resources\extensions\chrome\phoenix.crx ..\resources\extensions\chrome\pp.crx ..\resources\extensions\chrome\prime.crx ..\resources\extensions\chrome\pron.crx
+# https://stackoverflow.com/questions/49614217/selenium-clear-chrome-cache

@@ -5,6 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 crxmake = "*"
+matplotlib = "*"
 
 [packages]
 attrs = "==20.2.0"

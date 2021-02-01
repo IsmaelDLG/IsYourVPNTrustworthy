@@ -10,35 +10,71 @@ INPUT_DIR=Path('./').absolute()
 def desviation(a_list):
     return statistics.stdev(a_list)
 
-def make_barplot(desv_dicc):
+def make_barplot(title, desv_dicc):
     keys = []
     values = []
     for key, value in desv_dicc.items():
         keys.append(key)
         values.append(value)
     plt.bar(keys, values)
+    plt.title(title)
     plt.xticks(rotation=45)
     plt.show()
 
 if __name__ == '__main__':
-    with open('analysis01_short.json', 'r') as f:
+    with open('C:\\Users\\ismae\\Downloads\\analysis01_short.json', 'r') as f:
         data01 = json.load(f)
-    the_lists01 = {}
+    stdv_webpages = {}
     for ext in data01:
         for f in data01[ext]:
-            if f in the_lists01:
-                the_lists01[f].append(data01[ext][f])
+            if f in stdv_webpages:
+                stdv_webpages[f].append(data01[ext][f])
             else:
-                the_lists01[f] = [data01[ext][f]]
+                stdv_webpages[f] = [data01[ext][f],]
     
-    # Get std desviation
-    for f in the_lists01:
-        if len(the_lists01[f]) > 1:
-            the_lists01[f] = desviation(the_lists01[f])
+    for f in stdv_webpages:
+        if len(stdv_webpages[f]) > 1:
+            stdv_webpages[f] = desviation(stdv_webpages[f])
         else:
-            the_lists01[f] = 0
+            stdv_webpages[f] = 0
+    
+    make_barplot("Standard deviation in similarity of the webpages among different VPNs", stdv_webpages)
+    
+    with open('C:\\Users\\ismae\\Downloads\\analysis01_full.json', 'r') as f:
+        data02 = json.load(f)
+    
+    similarity_per_vpn_per_page = {}
+    for ext in data02:
+        similarity_per_vpn_per_page[ext] = {}
+        for group in data02[ext]:
+            values = []
+            for run in data02[ext][group]:
+                values.append(data02[ext][group][run])
+            if len(values) >= 1:
+                similarity_per_vpn_per_page[ext][group] = sum(values) / len(values)
+            else:
+                similarity_per_vpn_per_page[ext][group] = 0
+        make_barplot("Similarity of wepages in VPN %s" % ext, similarity_per_vpn_per_page[ext])
 
-    # make_barplot(the_lists01)
+    deviation_per_vpn_per_page = {}
+    for ext in data02:
+        deviation_per_vpn_per_page[ext] = {}
+        for group in data02[ext]:
+            values = []
+            for run in data02[ext][group]:
+                values.append(data02[ext][group][run])
+            if len(values) > 1:
+                deviation_per_vpn_per_page[ext][group] = desviation(values)
+            else:
+                deviation_per_vpn_per_page[ext][group] = 0
+        make_barplot("Standard deviation in similarity of wepages in VPN %s" % ext, deviation_per_vpn_per_page[ext])
+    
+    
+            
+
+
+
+    """
     with open('analysis02.json', 'r') as f:
         data02 = json.load(f)
     for ext in data02:
@@ -52,3 +88,4 @@ if __name__ == '__main__':
         data02[ext] = avg / (len(semblanca) if len(semblanca) > 0 else 1)
     
     make_barplot(data02)
+    """

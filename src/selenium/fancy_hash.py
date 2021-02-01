@@ -6,7 +6,7 @@ import sys, os, json, time
 
 INPUT_DIR = "C:\\Users\\ismae\\Downloads\\test2\\hotspot\\file-¡Bienvenid"
 
-NUM_PERM = 4096
+NUM_PERM = 1024
 # 0 is whole line
 JACC_GRANULARITY = 0
 
@@ -79,9 +79,10 @@ def _compare_merged(minhash_dic):
 
     return ret
 
-def calc_proximity_one(a_dir=INPUT_DIR):
+def calc_proximity_of_dir(a_dir=INPUT_DIR):
     """Calculate proximit between files, assuming all the files are in a_dir.
     """
+
     res = None
     if os.path.isdir(a_dir):
         minhash_dic = {}
@@ -89,7 +90,6 @@ def calc_proximity_one(a_dir=INPUT_DIR):
             filename, a_set = _create_set(a_dir + os.path.sep + file)
             mh = _create_minhash(a_set)
             minhash_dic[filename] = mh
-        import json
         res = _compare_single(minhash_dic)
     return  (_compare_merged(minhash_dic), res)
 
@@ -138,7 +138,6 @@ def calc_proximity_two(a_dir=INPUT_DIR):
     return result
 
     
-
 if __name__ == '__main__':
     short_opts = "hd:"
     long_opts = ["help", "directory="]

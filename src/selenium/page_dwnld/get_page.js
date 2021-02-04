@@ -18,7 +18,7 @@ function sendHTML() {
 
 
     // html = document.documentElement.cloneNode(true).innerHTML.toString();
-    chrome.extension.sendRequest({type: "downloadPage", value: { text: result, name: document.title.replace(/ /g, "_").substr(0,10) + ".html"}});
+    chrome.extension.sendRequest({type: "downloadPage", value: { text: result, name: document.title.replace(/ /g, "_").substr(0,15) + ".html"}});
 }
 
 chrome.runtime.onMessage.addListener(

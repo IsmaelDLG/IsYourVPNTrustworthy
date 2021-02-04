@@ -3,82 +3,46 @@
 This module is used to look for javascript injection from the extension vpns availible.
 """
 
-import os, sys, zipfile, time, json, threading
-from getopt import getopt, GetoptError
+import os
+from time import sleep, time
+from json import loads as jloads
+from datetime import datetime, timezone
+import requests
+from hashlib import md5
+import traceback 
+from pathlib import Path
 
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import TimeoutException, WebDriverException
-from pathlib import Path
 
-from sort_files import sort
-from fancy_hash import calc_proximity_of_dir, calc_proximity_two
+DOWNLOAD_DIR = "/home/ismael/Descargas/"
+WEBDRIVER = "/usr/bin/chromedriver"
 
-DOWNLOAD_DIR = "C:\\Users\\ismae\\Downloads\\"
-WEBSITE_LIST = Path('top500Domains.csv')
-WEBDRIVER = "./chromedriver"
-RUNS = 1
-CRAWL = True
-SHOW_RESULTS = True
+def utc_now():
+    return datetime.utcnow().replace(tzinfo=timezone.utc)
 
-
-
-
-def _usage():
-    print("\tusage: {file} [-h|l <path_to_list>|r <n_runs>|t <n_threads>] extension_1[, ...]".format(file=__file__))
-    sys.exit(2)
-
-def get_website_list(filepath: str) -> list:
-    """This method parses the document obtained from https://moz.com/top500 into a list 
-    object that contains the urls. The .csv file must use the ',' character as 
-    separator.
-
-    :param filepath: Path to the .csv file that contains the list.
-
-    :return: A list of URLs, as strings.
-    """
-    clean_list = []
-
-    if Path(filepath).exists():
-        with open(filepath, "r") as f:
-            raw_list = f.readlines()
-
-        raw_list.pop(0)
-        for row in raw_list:
-            field = row.split(",")[1].replace('"', "")
-
-            if field.startswith("http"):
-                clean_list.append(field)
-            elif field.startswith("www"):
-                clean_list.append("https://" + field)
-            else:
-                clean_list.append("https://www." + field)
-
-    return clean_list
 
 class Crawler:
     def __init__(self, runs=1, extension=None, current_url=0, current_run=0):
         self._runs_per_site = runs
         self._extension = extension
 
-        self._current_url = 0
-        self._current_run = 0
+        self._current_url = current_url
+        self._current_run = current_run
 
         paths_to_ext = []
+        # Our extensions, which downloads the scripts of the webpage
         paths_to_ext.append(Path('page_dwnld.crx').absolute())
-
-
 
         if extension:
             paths_to_ext.append(Path(extension).absolute())
         else:
             extension = "no_vpn"
         
-        # Create extensions folder
-        download_dir = Path(DOWNLOAD_DIR + extension.split(os.path.sep)[-1].split(".")[0])
+        # Create download folder
+        download_dir = DOWNLOAD_DIR + extension.split(os.path.sep)[-1].split(".")[0] + os.path.sep
         if not os.path.exists(str(download_dir)):
             os.mkdir(download_dir)
 
@@ -87,8 +51,6 @@ class Crawler:
         self._exe_path = Path(WEBDRIVER).absolute()
         os.environ["webdriver.chrome.driver"] = str(self._exe_path)
 
-        
-        
         self._chrome_options = Options()
         if paths_to_ext:
             for ext in paths_to_ext:
@@ -100,6 +62,22 @@ class Crawler:
         self._chrome_options.add_experimental_option('useAutomationExtension', False)
         self._chrome_options.add_experimental_option("prefs", {"download.default_directory" : str(download_dir)})
 
+        # Clean cache/cookies
+        self._chrome_options.add_argument('--media-cache-size=0')
+        self._chrome_options.add_argument('--v8-cache-options=off')
+        self._chrome_options.add_argument('--disable-gpu-program-cache')
+        self._chrome_options.add_argument('--gpu-program-cache-size-kb=0')
+        self._chrome_options.add_argument('--disable-gpu-shader-disk-cache')
+        self._chrome_options.add_argument('--disk-cache-dir=/tmp')
+        self._chrome_options.add_argument('--disable-dev-shm-usage')
+        self._chrome_options.add_argument('--v8-cache-strategies-for-cache-storage=off')
+        self._chrome_options.add_argument('--mem-pressure-system-reserved-kb=0')
+        self._chrome_options.set_capability("applicationCacheEnabled", False)
+
+        # Set Devtools Protocol to start taking network logs
+        self._chrome_options.set_capability("loggingPrefs", {'performance': 'ALL'})
+        self._chrome_options.add_experimental_option('w3c', False)
+
         self._driver = webdriver.Chrome(executable_path=self._exe_path, options=self._chrome_options)
 
     def clear_data(self):
@@ -107,34 +85,177 @@ class Crawler:
         # Obtained from 
         # https://stackoverflow.com/questions/50456783/python-selenium-clear-the-cache-and-cookies-in-my-chrome-webdriver
         self._driver.execute_script("window.open('');")
-        time.sleep(0.25)
+        sleep(0.25)
         self._driver.switch_to.window(self._driver.window_handles[-1])
-        time.sleep(0.25)
+        sleep(0.25)
         self._driver.get('chrome://settings/clearBrowserData') # for old chromedriver versions use cleardriverData
-        time.sleep(1)
+        sleep(1)
         actions = ActionChains(self._driver) 
         actions.send_keys(Keys.TAB * 3 + Keys.DOWN * 3) # send right combination
         actions.perform()
-        time.sleep(0.5)
+        sleep(0.5)
         actions = ActionChains(self._driver) 
         actions.send_keys(Keys.TAB * 4 + Keys.ENTER) # confirm
         actions.perform()
-        time.sleep(3) # wait some time to finish
+        sleep(3) # wait some time to finish
         self._driver.close() # close this tab
         self._driver.switch_to.window(self._driver.window_handles[0]) # switch back
+    
+    def _download_file(self, url, destination, headers=None, verify=True):
+        """ Downloads a file. """
 
-    def navigate_to(self, url):
-        self._driver.get(url)
-        time.sleep(3)
+        h = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:45.0) Gecko/20100101 Firefox/45.0'}
+        if headers is not None:
+            h.update(headers)
+
+        resp = requests.get(url, stream=True, headers=h, timeout=(6, 27), verify=verify)
+        for chunk in resp.iter_content(chunk_size=4096):
+            if chunk:
+                destination.write(chunk)
+
+        destination.seek(0)
+        return destination, resp.headers
+
+    def download_resources(self, domain, request):
+        """Downloads requests' resources.
+        
+        :returns: None.
+        """
+
+        if "mime_type" in request and any(case in request["mime_type"] for case in ("text/", "application/x-javascript", "application/javascript" )):
+            filename = os.path.join(self._download_dir, md5(request["url"].encode()).hexdigest() + '.txt')        
+            with open(filename, 'wb') as f:
+                try:
+                    f, headers = self._download_file(url=request["url"], destination=f)
+                except requests.exceptions.SSLError:
+                    try:
+                        requests.packages.urllib3.disable_warnings()
+                        f, headers = self._download_file(url=request["url"], destination=f, verify=False)
+                    except Exception as e:
+                        print("Error #1: %s" % (str(e)))
+                except UnicodeError as e:
+                    print("Error #2: Couldn't download url %s with error %s" % (request["url"], str(e)))
+                except Exception as e:
+                    print("Error #3: %s" % (str(e)))
+                print("Found external resource %s. Saving file %s" % (request["url"], filename))
+            if os.path.getsize(filename) == 0:
+                os.remove(filename)
+                print("Deleted file %s for it was empty!" % filename)
+
+    def _get_network(self, log_entries):
+        """ Reads the performance log entries and computes a network traffic dictionary based on the actual requests. """
+
+        network_traffic = {}
+        for log_entry in log_entries:
+            message = jloads(log_entry["message"])
+            method = message["message"]["method"]
+            params = message["message"]["params"]
+            if method not in ["Network.requestWillBeSent", "Network.responseReceived", "Network.loadingFinished"]:
+                continue
+            if method != "Network.loadingFinished":
+                request_id = params["requestId"]
+                loader_id = params["loaderId"]
+                if loader_id not in network_traffic:
+                    network_traffic[loader_id] = {"requests": {}, "encoded_data_length": 0}
+                if request_id == loader_id:
+                    if "redirectResponse" in params:
+                        network_traffic[loader_id]["encoded_data_length"] += params["redirectResponse"]["encodedDataLength"]
+                    if method == "Network.responseReceived":
+                        network_traffic[loader_id]["type"] = params["type"]
+                        network_traffic[loader_id]["url"] = params["response"]["url"]
+                        network_traffic[loader_id]["remote_IP_address"] = None
+                        if "remoteIPAddress" in params["response"].keys():
+                            network_traffic[loader_id]["remote_IP_address"] = params["response"]["remoteIPAddress"]
+                        network_traffic[loader_id]["encoded_data_length"] += params["response"]["encodedDataLength"]
+                        network_traffic[loader_id]["headers"] = params["response"]["headers"]
+                        network_traffic[loader_id]["status"] = params["response"]["status"]
+                        network_traffic[loader_id]["security_state"] = params["response"]["securityState"]
+                        network_traffic[loader_id]["mime_type"] = params["response"]["mimeType"]
+                        if "via" in params["response"]["headers"]:
+                            network_traffic[loader_id]["cached"] = True
+                else:
+                    if request_id not in network_traffic[loader_id]["requests"]:
+                        network_traffic[loader_id]["requests"][request_id] = {"encoded_data_length": 0}
+                    if "redirectResponse" in params:
+                        network_traffic[loader_id]["requests"][request_id]["encoded_data_length"] += params["redirectResponse"]["encodedDataLength"]
+                    if method == "Network.responseReceived":
+                        network_traffic[loader_id]["requests"][request_id]["type"] = params["type"]
+                        network_traffic[loader_id]["requests"][request_id]["url"] = params["response"]["url"]
+                        network_traffic[loader_id]["requests"][request_id]["remote_IP_address"] = None
+                        if "remoteIPAddress" in params["response"].keys():
+                            network_traffic[loader_id]["requests"][request_id]["remote_IP_address"] = params["response"]["remoteIPAddress"]
+                        network_traffic[loader_id]["requests"][request_id]["encoded_data_length"] += params["response"]["encodedDataLength"]
+                        network_traffic[loader_id]["requests"][request_id]["headers"] = params["response"]["headers"]
+                        network_traffic[loader_id]["requests"][request_id]["status"] = params["response"]["status"]
+                        network_traffic[loader_id]["requests"][request_id]["security_state"] = params["response"]["securityState"]
+                        network_traffic[loader_id]["requests"][request_id]["mime_type"] = params["response"]["mimeType"]
+                        if "via" in params["response"]["headers"]:
+                            network_traffic[loader_id]["requests"][request_id]["cached"] = 1
+            else:
+                request_id = params["requestId"]
+                encoded_data_length = params["encodedDataLength"]
+                for loader_id in network_traffic:
+                    if request_id == loader_id:
+                        network_traffic[loader_id]["encoded_data_length"] += encoded_data_length
+                    elif request_id in network_traffic[loader_id]["requests"]:
+                        network_traffic[loader_id]["requests"][request_id]["encoded_data_length"] += encoded_data_length
+        return network_traffic
+
+    def navigate_to(self, domain):
+        print("Visit %s" % domain)
+        
+        
+        # This might raise exception. it will be captured in Crawler Manager.
+        self._driver.get("https://" + domain)
+        sleep(10)
+        # Get network traffic dictionary
+        log_entries = self._driver.get_log('performance')
+        network_traffic = self._get_network(log_entries)
+        # Process traffic dictionary
+        for key in network_traffic.keys():
+            self.download_resources(domain, network_traffic[key])
+            for sub_key in network_traffic[key]["requests"].keys():
+                self.download_resources(domain, network_traffic[key]["requests"][sub_key])
+
+             
     
     def visit_one(self, url):
+        """Visits a website of the list if still in runs_per_site. 
+
+        :param url: A string that represents the url of a domain.
+        
+        :returns: None.
+        """
+        # create dir for domain
+        domain_dir = str(self._download_dir) + url.replace(".", "-") + os.path.sep
+        os.makedirs(domain_dir, exist_ok=True)
+
         while self._current_run < self._runs_per_site:
+            run_dir = domain_dir + str(self._current_run) + os.path.sep
+            os.makedirs(run_dir, exist_ok=True)
+
             self.navigate_to(url)
             self.clear_data()
+        
+            # move all downloaded files to domain_dir/run_dir
+            for f in os.listdir(self._download_dir):
+                filename = self._download_dir + f
+                if not os.path.isdir(filename):
+                    os.rename(filename, run_dir + f)
+
             self._current_run = self._current_run + 1
+   
         self._current_run = 0
+
     
     def visit_all(self, url_list):
+        """Visits every website of the given list, if it hasn't been visited before. 
+
+        :param url_list: A list of strings that represent the urls of a list of domains.
+        
+        :returns: None.
+        """
+
         while self._current_url < len(url_list):
             ws = url_list[self._current_url]
             self.visit_one(ws)
@@ -142,6 +263,11 @@ class Crawler:
         self._current_url = 0
     
     def close(self):
+        """Closes the driver.
+        
+        :returns: None.
+        """
+
         self._driver.close()
 
 class CrawlerManager:
@@ -162,116 +288,18 @@ class CrawlerManager:
             self._crawler.visit_all(self._url_list)
         except Exception as e:
             print("Error: %s" % e)
+            traceback.print_exc()
             self._crawler.close()
+            
+            self._crawler = Crawler(
+                runs=self._crawler._runs_per_site, 
+                extension=self._crawler._extension,
+                current_url=self._crawler._current_url+1, 
+                current_run=self._crawler._current_run)
             wait = True
             while wait:
                 wait = input("Start? [y/n]: ") != "y"
-            self._crawler = Crawler(
-                self._crawler._runs_per_site, 
-                self._crawler._extension,
-                self._crawler._current_url, 
-                self._crawler._current_run)
             self.run()
-
-if __name__ == '__main__':
-    short_opts = "hl:r:t:"
-    long_opts = ["help", "list=", "runs=", "threads=", "crawl=", "no-crawl", "no-results"]
-
-    try:
-        opts, args = getopt(sys.argv[1:], short_opts, long_opts)
-    except Exception:
-        _usage()
-    
-    for opt, arg in opts:
-        if opt in ('-h', '--help') :
-            _usage()
-        elif opt in ('-l', '--list'):
-            try:
-                WEBSITE_LIST = Path(arg).absolute()
-            except:
-                _usage()
-        elif opt in ('-r', '--runs'):
-            try:
-                RUNS = int(arg)
-            except:
-                _usage()
-        elif opt in ('-t', '--threads'):
-            try:
-                THREADS_EXT = int(arg)
-            except:
-                _usage()
-        elif opt == '--no-crawl':
-            CRAWL = False
-        elif opt == '--no-results':
-            SHOW_RESULTS = False
-    
-    if CRAWL:
-        extensions = []
-        for extension in args:
-            extensions.append(str(Path(extension).absolute()))
-        
-        extensions.insert(0, None) # No extension!
-        
-        mylist = get_website_list(WEBSITE_LIST)
-
-        thread_list = []
-        timestamp_run = time.time()
-        for extension in extensions:
-            try:
-                new_thread = threading.Thread(
-                    target=CrawlerManager, args=(timestamp_run, mylist, RUNS, extension), daemon=True)
-                new_thread.start()
-            except Exception as e:
-                print("Could not run thread for extension \"%s\". Error: %s" % (extension, e))
-            thread_list.append(new_thread)
-
-        # Wait for all threads to finish
-        for t in thread_list:
-            t.join()
-
-    if SHOW_RESULTS:    
-        full_result = {}
-        simplified_result = {}
-        for root in os.listdir(DOWNLOAD_DIR):
-            print("Sorting files for extension %s..." % root)
-            full_result[root] = {}
-            simplified_result[root] = {}
-            extension_dir = DOWNLOAD_DIR + root + os.path.sep
-            # Sort files in directories
-            if not os.path.isdir(extension_dir):
-                    continue
-            files = {}
-            count = 0
-            for f in os.listdir(extension_dir):
-                if os.path.isdir(extension_dir + f):
-                    continue
-                name = f.split(".")[0].split(" ")[0]
-                file_dir = extension_dir + name + os.path.sep
-                if name not in files:
-                    if not os.path.exists(file_dir):
-                        os.mkdir(file_dir)  
-                    else:
-                        count = len(os.listdir(file_dir)) + 1
-                    files[name] = count
-                os.rename(extension_dir + f, file_dir + name + '-%i' % files[name] + ".html")
-                files[name] = files[name] + 1
-            print("Finished.")
-            # Analyze the files
-            print("Calculating proximity of files using extension %s..." % root)
-            for group in os.listdir(extension_dir):
-                group_dir = extension_dir + group
-                if not os.path.isdir(group_dir):
-                    continue
-                else:
-                    part_avg, part_data = calc_proximity_of_dir(group_dir)
-                    full_result[root][group] = part_data
-                    simplified_result[root][group] = part_avg
-            print("Finished.")
-
-        with open(DOWNLOAD_DIR + os.path.sep + 'analysis01_full.json', 'w') as f:
-            json.dump(full_result, f, indent=2)
-        with open(DOWNLOAD_DIR + os.path.sep + 'analysis01_short.json', 'w') as f:
-            json.dump(simplified_result, f, indent=2)
 
     
 

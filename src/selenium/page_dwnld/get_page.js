@@ -16,9 +16,10 @@ function sendHTML() {
         result.push(el.outerHTML);
     });
 
-
-    // html = document.documentElement.cloneNode(true).innerHTML.toString();
-    chrome.extension.sendRequest({type: "downloadPage", value: { text: result, name: document.title.replace(/ /g, "_").substr(0,15) + ".html"}});
+    name_array = document.URL.split(".");
+    result.forEach((el, index) => {
+        chrome.extension.sendRequest({type: "downloadPage", value: { text: el, name: md5(el)}});
+    });
 }
 
 chrome.runtime.onMessage.addListener(

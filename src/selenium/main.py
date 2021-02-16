@@ -8,6 +8,7 @@ WEBSITE_LIST = Path('topSospechosos.csv')
 RUNS = 1
 CRAWL = True
 SHOW_RESULTS = False
+DOWNLOAD_DIR = "/home/ismael/Downloads/"
 
 def _usage():
     print("\tUsage: {file} [-h|l <path_to_list>|r <n_runs>] extension_1[, ...]".format(file=__file__))

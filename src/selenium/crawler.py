@@ -17,7 +17,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
-DOWNLOAD_DIR = "/home/ismael/Descargas/"
+from main import DOWNLOAD_DIR
+
 WEBDRIVER = "/usr/bin/chromedriver"
 
 def utc_now():

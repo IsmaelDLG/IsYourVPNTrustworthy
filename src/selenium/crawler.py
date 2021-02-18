@@ -17,8 +17,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
-from main import DOWNLOAD_DIR
-
 WEBDRIVER = "/usr/bin/chromedriver"
 
 def utc_now():
@@ -26,7 +24,8 @@ def utc_now():
 
 
 class Crawler:
-    def __init__(self, runs=1, extension=None, current_url=0, current_run=0):
+    def __init__(self, runs=1, extension=None, current_url=0, current_run=0, download_dir="/home/ismael/Downloads/"
+):
         self._runs_per_site = runs
         self._extension = extension
 
@@ -43,7 +42,7 @@ class Crawler:
             extension = "no_vpn"
         
         # Create download folder
-        download_dir = DOWNLOAD_DIR + extension.split(os.path.sep)[-1].split(".")[0] + os.path.sep
+        download_dir = download_dir + extension.split(os.path.sep)[-1].split(".")[0] + os.path.sep
         if not os.path.exists(str(download_dir)):
             os.mkdir(download_dir)
 

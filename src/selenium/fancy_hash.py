@@ -4,9 +4,9 @@ from getopt import getopt, GetoptError
 
 import sys, os, json, time
 
-INPUT_DIR = "C:\\Users\\ismae\\Downloads\\test2\\hotspot\\file-¡Bienvenid"
+INPUT_DIR = "/home/ismael/Downloads/"
 
-NUM_PERM = 1024
+NUM_PERM = 230
 # 0 is whole line
 JACC_GRANULARITY = 0
 
@@ -30,7 +30,7 @@ def _create_set(filename, granularity=JACC_GRANULARITY):
             # Appends items to the res list using the given granularity
             [res.append(aux[i:i+granularity-1]) for i in range(0, len(aux), granularity)]
     
-    return (filename, set(res))
+    return set(res)
 
 def _create_minhash(a_set, perms=NUM_PERM):
     """Returns a minhash of the given set using the permutation number given.
@@ -137,7 +137,22 @@ def calc_proximity_two(a_dir=INPUT_DIR):
                 continue
     return result
 
-    
+def create_tree(a_dir=INPUT_DIR):
+    """Recursively loads all files in thee hierarchy as MH."""
+    files = os.listdir(a_dir)
+    result = {}
+    for f in files:
+        a_file = a_dir + os.path.sep + f
+        print("Checking file %s" % a_file)
+        if os.path.isdir(a_file):
+            result[a_file] = create_tree(a_file)
+        elif os.path.isfile(a_file):
+            print("Using stub")
+            result[a_file] = "a_hash"
+            # result[a_file] = _create_minhash(_create_set(a_file))
+    return result
+
+
 if __name__ == '__main__':
     short_opts = "hd:"
     long_opts = ["help", "directory="]

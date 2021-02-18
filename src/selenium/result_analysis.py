@@ -1,11 +1,117 @@
 import statistics
 import json
+import os
+import copy
+
 
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 
+
 INPUT_DIR=Path('./').absolute()
+
+def _repetitions(webpage_tree):
+    """Finds how many times resources are present in the different runs of the webpages, using the treshold."""
+    
+    if len(webpage_tree) > 0:
+        result = {
+            "runs" : len(webpage_tree)
+        }
+        for run in webpage_tree:
+            for f in webpage_tree[run]:
+                filename = f.split(os.path.sep)[-1]
+                if filename not in result:
+                    result[filename] = {
+                        "reps": 1,
+                        "hash": webpage_tree[run][f],
+                    }
+                else:
+                    result[filename]["reps"] = result[filename]["reps"] + 1
+        
+        # sorts dictionary descendant according to repetitions
+        # Doesn't work
+        # result = {key: value for key, value in sorted(result.items(), key=lambda item: item[1], reverse=True)}
+
+    return result
+
+def repetitions(tree):
+    """Gets repetition data for all results."""
+    
+    res = {}
+    for extension_dir in tree:
+        extension = extension_dir.split(os.path.sep)[-1]
+        res[extension] = {}
+        for webpage_dir in tree[extension_dir]:
+            webpage = webpage_dir.split(os.path.sep)[-1]
+            res[extension][webpage] = _repetitions(tree[extension_dir][webpage_dir])
+    return res
+
+def discard_resources(data, presence_treshold=1.0):
+    """This method discard resources present in the \"no_vpn\" dictionary, 
+    for they are 100% not vpn-dependant."""
+    
+    # we will discard stuff from this copy
+    res = copy.deepcopy(data)
+    
+    # to compare easier
+    good_one = copy.deepcopy(data["no_vpn"])
+    del data["no_vpn"]
+
+
+    to_del = []
+
+    for extension in data:
+        for webpage in data[extension]:
+            for f in data[extension][webpage]:
+                if f in ("runs",):
+                    continue
+                # if case["reps"] >= (runs*treshold):
+                if f in good_one[webpage]:
+                    del res[extension][webpage][f]
+                    # this will repeat, but it shouldn't be a problem
+                    to_del.append((webpage, f))
+
+    for webpage, file in to_del:
+        try:
+            del data["no_vpn"][webpage][file]
+        except KeyError:
+            pass
+        
+    return res
+
+def find_similarities(data, similarity_treshold=0.8):
+    """For each file, find all files with high similarity."""
+
+    good_one = copy.deepcopy(data["no_vpn"])
+    del data["no_vpn"]
+    
+    all_minhashes = []
+
+    # put everything easy to work with
+    for extension in data:
+        for webpage in data[extension]:
+            for file in data[extension][webpage]:
+                path = (extension, webpage, file)
+                all_minhashes.append((path, data[extension][webpage][file]))
+
+    aux = copy.deepcopy(all_minhashes)
+    path_data, data = aux.pop(0)
+    all_minhashes.pop(0)
+    while path_data and data:
+        for comp_path, comp_data in all_minhashes:
+            similarity = data["hash"].jaccard(comp_data["hash"])
+            if similarity >=similarity_treshold:
+                        
+        
+        all_minhashes.append((path_data, data))
+        try:
+            path_data, data = aux.pop(0)
+        except IndexError:
+            path_data = data = None
+
+    print("Finished!")
+    print(all_minhashes)
 
 def desviation(a_list):
     return statistics.stdev(a_list)

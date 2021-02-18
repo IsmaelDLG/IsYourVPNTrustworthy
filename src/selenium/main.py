@@ -1,4 +1,6 @@
 from crawler import CrawlerManager
+from fancy_hash import  create_tree
+from result_analysis import repetitions, discard_resources, find_similarities
 import sys, os, time, threading
 from json import dump as jdump
 from getopt import getopt, GetoptError
@@ -7,7 +9,7 @@ from pathlib import Path
 WEBSITE_LIST = Path('topSospechosos.csv')
 RUNS = 1
 CRAWL = True
-SHOW_RESULTS = False
+SHOW_RESULTS = True
 DOWNLOAD_DIR = "/home/ismael/Downloads/"
 
 def _usage():
@@ -96,45 +98,18 @@ if __name__ == '__main__':
             t.join()
 
     if SHOW_RESULTS:    
-        full_result = {}
-        simplified_result = {}
-        for root in os.listdir(DOWNLOAD_DIR):
-            print("Sorting files for extension %s..." % root)
-            full_result[root] = {}
-            simplified_result[root] = {}
-            extension_dir = DOWNLOAD_DIR + root + os.path.sep
-            # Sort files in directories
-            if not os.path.isdir(extension_dir):
-                    continue
-            files = {}
-            count = 0
-            for f in os.listdir(extension_dir):
-                if os.path.isdir(extension_dir + f):
-                    continue
-                name = f.split(".")[0].split(" ")[0]
-                file_dir = extension_dir + name + os.path.sep
-                if name not in files:
-                    if not os.path.exists(file_dir):
-                        os.mkdir(file_dir)  
-                    else:
-                        count = len(os.listdir(file_dir)) + 1
-                    files[name] = count
-                os.rename(extension_dir + f, file_dir + name + '-%i' % files[name] + ".html")
-                files[name] = files[name] + 1
-            print("Finished.")
-            # Analyze the files
-            print("Calculating proximity of files using extension %s..." % root)
-            for group in os.listdir(extension_dir):
-                group_dir = extension_dir + group
-                if not os.path.isdir(group_dir):
-                    continue
-                else:
-                    part_avg, part_data = calc_proximity_of_dir(group_dir)
-                    full_result[root][group] = part_data
-                    simplified_result[root][group] = part_avg
-            print("Finished.")
+        # Loads all files as fancy_hash
+        tree = create_tree(DOWNLOAD_DIR)
 
-        with open(DOWNLOAD_DIR + os.path.sep + 'analysis01_full.json', 'w') as f:
-            jdump(full_result, f, indent=2)
-        with open(DOWNLOAD_DIR + os.path.sep + 'analysis01_short.json', 'w') as f:
-            jdump(simplified_result, f, indent=2)
+        printable1 = repetitions(tree)
+
+        import json
+        with open("test1.json", 'w') as f:
+            json.dump(printable1, f, indent=4)
+        
+        printable2 = discard_resources(printable1)
+
+        with open("test2.json", 'w') as f:
+            json.dump(printable2, f, indent=4)
+        
+        find_similarities(printable2)

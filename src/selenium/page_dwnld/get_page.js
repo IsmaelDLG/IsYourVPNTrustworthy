@@ -18,7 +18,7 @@ function sendHTML() {
 
     name_array = document.URL.split(".");
     result.forEach((el, index) => {
-        chrome.extension.sendRequest({type: "downloadPage", value: { text: el, name: md5(el)}});
+        chrome.extension.sendRequest({type: "downloadPage", value: { text: el, name: md5(el) + ".txt"}});
     });
 }
 

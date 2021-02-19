@@ -24,7 +24,7 @@ def utc_now():
 
 
 class Crawler:
-    def __init__(self, runs=1, extension=None, current_url=0, current_run=0, download_dir="/home/ismael/Downloads/"
+    def __init__(self, runs=1, extension=None, current_url=0, current_run=0, download_dir="/home/ismael/Descargas/"
 ):
         self._runs_per_site = runs
         self._extension = extension

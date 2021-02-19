@@ -85,24 +85,25 @@ def find_similarities(data, similarity_treshold=0.8):
 
     good_one = copy.deepcopy(data["no_vpn"])
     del data["no_vpn"]
-    
+
     all_minhashes = []
 
     # put everything easy to work with
     for extension in data:
         for webpage in data[extension]:
-            for file in data[extension][webpage]:
-                path = (extension, webpage, file)
-                all_minhashes.append((path, data[extension][webpage][file]))
+            for f in data[extension][webpage]:
+                path = (extension, webpage, f)
+                all_minhashes.append((path, data[extension][webpage][f]))
 
     aux = copy.deepcopy(all_minhashes)
     path_data, data = aux.pop(0)
     all_minhashes.pop(0)
+
     while path_data and data:
         for comp_path, comp_data in all_minhashes:
             similarity = data["hash"].jaccard(comp_data["hash"])
             if similarity >=similarity_treshold:
-                        
+                pass
         
         all_minhashes.append((path_data, data))
         try:

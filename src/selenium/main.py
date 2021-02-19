@@ -10,7 +10,7 @@ WEBSITE_LIST = Path('topSospechosos.csv')
 RUNS = 1
 CRAWL = True
 SHOW_RESULTS = True
-DOWNLOAD_DIR = "/home/ismael/Downloads/"
+DOWNLOAD_DIR = "/home/ismael/Descargas/"
 
 def _usage():
     print("\tUsage: {file} [-h|l <path_to_list>|r <n_runs>] extension_1[, ...]".format(file=__file__))
@@ -112,4 +112,4 @@ if __name__ == '__main__':
         with open("test2.json", 'w') as f:
             json.dump(printable2, f, indent=4)
         
-        find_similarities(printable2)
+        # find_similarities(printable2)

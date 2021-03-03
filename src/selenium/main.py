@@ -1,8 +1,10 @@
 from crawler import CrawlerManager
+from datasketch import MinHash
 from fancy_hash import  create_tree
-from result_analysis import repetitions, discard_resources, find_similarities
+from result_analysis import repetitions_analysis, discard_resources, find_similarities, find_uniques
 import sys, os, time, threading
-from json import dump as jdump
+from json import dump as jdump, JSONEncoder
+
 from getopt import getopt, GetoptError
 from pathlib import Path
 
@@ -99,17 +101,49 @@ if __name__ == '__main__':
 
     if SHOW_RESULTS:    
         # Loads all files as fancy_hash
+        class MyEncoder(JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, MinHash): 
+                    return { 
+                        "desc" : "MinHash Object",
+                        "hash" : str(obj.digest())
+                     }
+                return JSONEncoder.default(self, obj)
+
         tree = create_tree(DOWNLOAD_DIR)
 
-        printable1 = repetitions(tree)
-
-        import json
-        with open("test1.json", 'w') as f:
-            json.dump(printable1, f, indent=4)
+        metadata, data = repetitions_analysis(tree)
         
-        printable2 = discard_resources(printable1)
-
-        with open("test2.json", 'w') as f:
-            json.dump(printable2, f, indent=4)
         
-        # find_similarities(printable2)
+
+
+        with open("metadata_analysis.json", 'w') as f:
+            jdump(metadata, f, indent=4, cls=MyEncoder)
+        
+        printable2 = discard_resources(data)
+        
+        with open("dynamic_resources_only.json", 'w') as f:
+            jdump(printable2, f, indent=4, cls=MyEncoder)
+        
+        printable3 = find_similarities(printable2)
+
+        with open("dinamyc_resources_similarities.json", 'w') as f:
+            jdump(printable3, f, indent=4, cls=MyEncoder)
+
+        printable4 = find_uniques(printable3, similarity_treshold=0.7)
+
+        printable4 = {
+            "total_files" : len(printable4),
+            "files": printable4
+        }
+
+        with open("resume.json", 'w') as f:
+            jdump(printable4, f, indent=4, cls=MyEncoder)
+
+# python main.py ../resources/extensions/chrome/1click.crx ../resources/extensions/chrome/adguard.crx ../resources/extensions/chrome/astard.crx ../resources/extensions/chrome/betternet.crx 
+# python main.py ../resources/extensions/chrome/browsec.crx ../resources/extensions/chrome/daily.crx ../resources/extensions/chrome/dot.crx ../resources/extensions/chrome/earth.crx 
+# python main.py ../resources/extensions/chrome/earth.crx ../resources/extensions/chrome/express.crx ../resources/extensions/chrome/free.pro.crx ../resources/extensions/chrome/hola.crx 
+# python main.py ../resources/extensions/chrome/hotspot.crx ../resources/extensions/chrome/hoxx.crx ../resources/extensions/chrome/ip_unblock.crx ../resources/extensions/chrome/ivacy.crx 
+# python main.py ../resources/extensions/chrome/phoenix.crx ../resources/extensions/chrome/pp.crx ../resources/extensions/chrome/prime.crx ../resources/extensions/chrome/pron.crx 
+# python main.py ../resources/extensions/chrome/rusvpn.crx ../resources/extensions/chrome/surf.crx ../resources/extensions/chrome/touch.crx ../resources/extensions/chrome/tuxler.crx 
+# python main.py ../resources/extensions/chrome/unlimited.crx ../resources/extensions/chrome/urban.crx ../resources/extensions/chrome/veepn.crx ../resources/extensions/chrome/vpnproxymaster.crx ../resources/extensions/chrome/zenmate.crx

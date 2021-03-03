@@ -143,13 +143,13 @@ def create_tree(a_dir=INPUT_DIR):
     result = {}
     for f in files:
         a_file = a_dir + os.path.sep + f
-        print("Checking file %s" % a_file)
+        print("Loading file %s" % a_file)
         if os.path.isdir(a_file):
             result[a_file] = create_tree(a_file)
         elif os.path.isfile(a_file):
-            print("Using stub")
-            result[a_file] = "a_hash"
-            # result[a_file] = _create_minhash(_create_set(a_file))
+            # print("Using stub")
+            # result[a_file] = "a_hash"
+            result[a_file] = _create_minhash(_create_set(a_file))
     return result
 
 

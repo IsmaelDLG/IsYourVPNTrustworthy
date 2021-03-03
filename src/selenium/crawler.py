@@ -228,11 +228,27 @@ class Crawler:
         """
         # create dir for domain
         domain_dir = str(self._download_dir) + url.replace(".", "-") + os.path.sep
-        os.makedirs(domain_dir, exist_ok=True)
+        try:
+            os.makedirs(domain_dir)
+        except OSError:
+            # removes files from incomplete runs
+            for f in os.listdir(domain_dir):
+                a_file = domain_dir + f
+                if not os.path.isdir(a_file):
+                    os.remove(a_file)
 
         while self._current_run < self._runs_per_site:
-            run_dir = domain_dir + str(self._current_run) + os.path.sep
-            os.makedirs(run_dir, exist_ok=True)
+            created = False
+            run_number = self._current_run
+            run_dir = ""
+            while not created:
+                run_dir = domain_dir + str(run_number) + os.path.sep
+                try:
+                    os.makedirs(run_dir)
+                    created = True
+                except OSError:
+                    # Run already exists, don't mix files!
+                    run_number = run_number + 1
 
             self.navigate_to(url)
             self.clear_data()
@@ -276,7 +292,7 @@ class CrawlerManager:
         self._url_list = url_list
         self._crawler = Crawler(runs, extension, current_url, current_run)
 
-        # Workaround to activate extensions
+        # Workaround to activate extensions manually
         wait = True
         while wait:
             wait = input("Start? [y/n]: ") != "y"
@@ -302,6 +318,4 @@ class CrawlerManager:
             self.run()
 
     
-
-
 

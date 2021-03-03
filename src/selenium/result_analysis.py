@@ -1,51 +1,91 @@
 import statistics
 import json
 import os
+import sys
 import copy
+from time import time
+from math import ceil
 
 
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 
+from getopt import getopt, GetoptError
 
-INPUT_DIR=Path('./').absolute()
+
+
+_INPUT_FILE=Path('./metadata_analysis.json')
+_REP_TRESHOLD = 0.80
+
+
+# FILE ANALYSIS
 
 def _repetitions(webpage_tree):
-    """Finds how many times resources are present in the different runs of the webpages, using the treshold."""
+    """Finds metadata on resources are present in the different runs of the webpages, using the treshold. 
+    Also orders the data in a logical way and returns 2 dictionaries, one of metadata and one of data."""
     
     if len(webpage_tree) > 0:
-        result = {
-            "runs" : len(webpage_tree)
+        metadata = {
+            "runs" : len(webpage_tree),
+            "max_resources_run": 0,
+            # a huge number
+            "min_resources_run": time() * 99999,
+            "avg_resources_run": 0,
+            "static_resources": 0,
+            "dynamic_resources": 0,
+            "files" : {},
         }
+        data = {}
         for run in webpage_tree:
+            files_in_run = len(webpage_tree[run])
+            if metadata["min_resources_run"] > files_in_run:
+                metadata["min_resources_run"] = files_in_run
+            if metadata["max_resources_run"] < files_in_run:
+                metadata["max_resources_run"] = files_in_run
+            metadata["avg_resources_run"] = metadata["avg_resources_run"] + files_in_run
             for f in webpage_tree[run]:
                 filename = f.split(os.path.sep)[-1]
-                if filename not in result:
-                    result[filename] = {
+                if filename not in data:
+                    metadata["files"][filename] = {
+                        "reps": 1,
+                    }
+                    data[filename] = {
                         "reps": 1,
                         "hash": webpage_tree[run][f],
                     }
                 else:
-                    result[filename]["reps"] = result[filename]["reps"] + 1
-        
-        # sorts dictionary descendant according to repetitions
-        # Doesn't work
-        # result = {key: value for key, value in sorted(result.items(), key=lambda item: item[1], reverse=True)}
+                    metadata["files"][filename]["reps"] = metadata["files"][filename]["reps"] + 1
+                    data[filename]["reps"] = data[filename]["reps"] + 1
 
-    return result
+        metadata["avg_resources_run"] = int(metadata["avg_resources_run"] / metadata["runs"])
 
-def repetitions(tree):
-    """Gets repetition data for all results."""
+        for f in data:
+            if metadata["files"][f]["reps"] >= (metadata["runs"] * _REP_TRESHOLD):
+                metadata["static_resources"] = metadata["static_resources"] + metadata["files"][f]["reps"]
+            else:
+                metadata["dynamic_resources"] = metadata["dynamic_resources"] + metadata["files"][f]["reps"]
+
+    return metadata, data
+
+def repetitions_analysis(tree, selector=None):
+    """Gets repetition data for all results. If selector is set, it indicates which 
+    trees should be visited. selector is a list of strings that ndicate the name of
+    the root of each tree."""
     
-    res = {}
+    metadata = {}
+    data = {}
     for extension_dir in tree:
+        if selector:
+            if extension_dir not in selector:
+                continue
         extension = extension_dir.split(os.path.sep)[-1]
-        res[extension] = {}
+        metadata[extension] = {}
+        data[extension] = {}
         for webpage_dir in tree[extension_dir]:
             webpage = webpage_dir.split(os.path.sep)[-1]
-            res[extension][webpage] = _repetitions(tree[extension_dir][webpage_dir])
-    return res
+            metadata[extension][webpage], data[extension][webpage] = _repetitions(tree[extension_dir][webpage_dir])
+    return metadata, data
 
 def discard_resources(data, presence_treshold=1.0):
     """This method discard resources present in the \"no_vpn\" dictionary, 
@@ -64,9 +104,6 @@ def discard_resources(data, presence_treshold=1.0):
     for extension in data:
         for webpage in data[extension]:
             for f in data[extension][webpage]:
-                if f in ("runs",):
-                    continue
-                # if case["reps"] >= (runs*treshold):
                 if f in good_one[webpage]:
                     del res[extension][webpage][f]
                     # this will repeat, but it shouldn't be a problem
@@ -80,42 +117,72 @@ def discard_resources(data, presence_treshold=1.0):
         
     return res
 
-def find_similarities(data, similarity_treshold=0.8):
-    """For each file, find all files with high similarity."""
+def find_similarities(data):
+    """Find similarity of each file with the files present in the webpage with no vpn."""
 
     good_one = copy.deepcopy(data["no_vpn"])
     del data["no_vpn"]
 
     all_minhashes = []
-
+    
     # put everything easy to work with
     for extension in data:
         for webpage in data[extension]:
             for f in data[extension][webpage]:
                 path = (extension, webpage, f)
                 all_minhashes.append((path, data[extension][webpage][f]))
-
     aux = copy.deepcopy(all_minhashes)
     path_data, data = aux.pop(0)
     all_minhashes.pop(0)
 
+    result = {}
     while path_data and data:
-        for comp_path, comp_data in all_minhashes:
-            similarity = data["hash"].jaccard(comp_data["hash"])
-            if similarity >=similarity_treshold:
-                pass
-        
+        for file in good_one[path_data[1]]:
+            print("Jaccard among %s and %s" % (path_data[2], file))
+            path_to_file = "/".join(("no_vpn", path_data[1], file))
+            similarity = data["hash"].jaccard(good_one[path_data[1]][file]["hash"])
+            try:
+                result["/".join(path_data)].append((path_to_file, similarity))
+            except KeyError:
+                result["/".join(path_data)] = [(path_to_file, similarity),]
+
         all_minhashes.append((path_data, data))
         try:
             path_data, data = aux.pop(0)
         except IndexError:
             path_data = data = None
 
-    print("Finished!")
-    print(all_minhashes)
+    return result
+
+def find_uniques(data, similarity_treshold=0.8):
+    """Deletes entries if they have similarity_treshold or higher with at least one file of the site without a vpn active."""
+
+    res = {}
+
+    for key, value in list(data.items()):
+        if any(x >= similarity_treshold for k, x in value):
+            del data[key]
+            continue
+        else:
+            # A self defined max function for the occasion
+            current_max = 0.0
+            current_file = None
+            for path, sim in value:
+                if sim > current_max:
+                    current_max = sim
+                    current_file = path
+
+            res[key] = { 
+                "max_similarity":current_max,
+                "file": current_file
+                }
+    
+    return res
 
 def desviation(a_list):
     return statistics.stdev(a_list)
+
+# PLOTS
 
 def make_barplot(title, desv_dicc):
     keys = []
@@ -128,71 +195,80 @@ def make_barplot(title, desv_dicc):
     plt.xticks(rotation=45)
     plt.show()
 
+def make_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
+    plt.bar(x_axis, y_axis)
+
+    if title:
+        plt.title(title)
+    if x_title:
+        plt.xlabel = x_title
+    if y_title:
+        plt.ylabel = y_title
+    if x_label_rot:
+        plt.xticks(rotation=x_label_rot)
+    if y_label_rot:
+        plt.yticks(rotation=y_label_rot)
+
+    plt.show()
+    
+
 if __name__ == '__main__':
-    with open('C:\\Users\\ismae\\Downloads\\analysis01_short.json', 'r') as f:
-        data01 = json.load(f)
-    stdv_webpages = {}
-    for ext in data01:
-        for f in data01[ext]:
-            if f in stdv_webpages:
-                stdv_webpages[f].append(data01[ext][f])
-            else:
-                stdv_webpages[f] = [data01[ext][f],]
     
-    for f in stdv_webpages:
-        if len(stdv_webpages[f]) > 1:
-            stdv_webpages[f] = desviation(stdv_webpages[f])
-        else:
-            stdv_webpages[f] = 0
-    
-    make_barplot("Standard deviation in similarity of the webpages among different VPNs", stdv_webpages)
-    
-    with open('C:\\Users\\ismae\\Downloads\\analysis01_full.json', 'r') as f:
-        data02 = json.load(f)
-    
-    similarity_per_vpn_per_page = {}
-    for ext in data02:
-        similarity_per_vpn_per_page[ext] = {}
-        for group in data02[ext]:
-            values = []
-            for run in data02[ext][group]:
-                values.append(data02[ext][group][run])
-            if len(values) >= 1:
-                similarity_per_vpn_per_page[ext][group] = sum(values) / len(values)
-            else:
-                similarity_per_vpn_per_page[ext][group] = 0
-        make_barplot("Similarity of wepages in VPN %s" % ext, similarity_per_vpn_per_page[ext])
+    short_opts = "hf:"
+    long_opts = ["help","metadata-file="]
 
-    deviation_per_vpn_per_page = {}
-    for ext in data02:
-        deviation_per_vpn_per_page[ext] = {}
-        for group in data02[ext]:
-            values = []
-            for run in data02[ext][group]:
-                values.append(data02[ext][group][run])
-            if len(values) > 1:
-                deviation_per_vpn_per_page[ext][group] = desviation(values)
-            else:
-                deviation_per_vpn_per_page[ext][group] = 0
-        make_barplot("Standard deviation in similarity of wepages in VPN %s" % ext, deviation_per_vpn_per_page[ext])
+    try:
+        opts, args = getopt(sys.argv[1:], short_opts, long_opts)
+    except Exception:
+        _usage()
     
+    for opt, arg in opts:
+        if opt in ('-h', '--help') :
+            _usage()
+        elif opt in ('-f', '--metadata-file'):
+            _INPUT_FILE = Path(arg).absolute()
     
+    with open(_INPUT_FILE, 'r') as f:
+        data = json.load(f)
+    
+
+    static_resource_data = {}
+    dynamic_resource_data = {}
+    for extension in data:
+        for webpage in data[extension]:
+            if webpage not in static_resource_data:
+                static_resource_data[webpage] = {
+                    "keys": [extension,],
+                    "values": [ceil(data[extension][webpage]["static_resources"] / data[extension][webpage]["runs"]),]
+                }
+                dynamic_resource_data[webpage] = {
+                    "keys": [extension,],
+                    "values": [ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]),]
+                }
             
+            else:
+                static_resource_data[webpage]["keys"].append(extension)
+                static_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["static_resources"] / data[extension][webpage]["runs"]))
 
-
-
-    """
-    with open('analysis02.json', 'r') as f:
-        data02 = json.load(f)
-    for ext in data02:
-        semblanca = []
-        for key, value in data02[ext].items():
-            semblanca.append(value)
-        
-        avg = 0
-        for x in semblanca:
-            avg = avg + x 
-        data02[ext] = avg / (len(semblanca) if len(semblanca) > 0 else 1)
+                dynamic_resource_data[webpage]["keys"].append(extension)
+                dynamic_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]))
     
-    make_barplot(data02)
-    """
+    for webpage in static_resource_data:
+        make_bar_plot(
+            static_resource_data[webpage]["keys"],
+            static_resource_data[webpage]["values"],
+            x_title="Extension Used",
+            y_title="Nº of static resources per run",
+            title="Static resources (presence >= treshhold * runs) found in webpage %s using different VPN extensions." % webpage
+        )
+
+    for webpage in dynamic_resource_data:
+        make_bar_plot(
+            dynamic_resource_data[webpage]["keys"],
+            dynamic_resource_data[webpage]["values"],
+            x_title="Extension Used",
+            y_title="Nº of static resources per run",
+            title="Dynamic resources (presence < treshhold * runs) found in webpage %s using different VPN extensions." % webpage
+        )
+
+

@@ -1,7 +1,7 @@
 from crawler import CrawlerManager
 from datasketch import MinHash
 from fancy_hash import  create_tree
-from result_analysis import repetitions_analysis, vpn_common_files, discard_resources, find_similarities, find_uniques
+from result_analysis import repetitions_analysis, vpn_common_files, discard_resources, find_similarities, find_uniques, vpn_specific_files
 import sys, os, time, threading
 from json import dump as jdump, JSONEncoder
 
@@ -127,14 +127,19 @@ if __name__ == '__main__':
         """
 
         print("Finding vpn-related files (Not extension-related).")
-        present_in_all_vpns = vpn_common_files(printable2)
+        present_in_all_vpns, not_present_in_all_vpns = vpn_common_files(printable2)
         with open("results/vpn_related_files.json", 'w') as f:
-            jdump(present_in_all_vpns, f, indent=4, cls=MyEncoder)
+            jdump(present_in_all_vpns, f, indent=4, cls=MyEncode)
         
+        vpn_specific_files = vpn_specific_files(not_present_in_all_vpns)
+        with open("results/vpn_specific_files.json", 'w') as f:
+            jdump(vpn_specific_files, f, indent=4, cls=MyEncode)
+
         
         print("Finding similarieties...")
         printable3 = find_similarities(printable2)
         del printable2
+        
         """
         with open("dinamyc_resources_similarities.json", 'w') as f:
             jdump(printable3, f, indent=4, cls=MyEncoder)

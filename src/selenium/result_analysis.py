@@ -119,28 +119,64 @@ def discard_resources(data, presence_treshold=1.0):
         
     return res
 
-def vpn_common_files(data):
+def vpn_common_files(data, treshold = 0.7):
     """Find files common in the different extensions. If this method is executed after discard_resources, the files found are VPN related.
+
+    This method returns two dictionaries. One with the files found in multiple VPNs (using the treshold to determine the amount), and one with the files that were not.
     """
-    result = {}
+    part_one = {}
+    part_two = {}
 
     for extension in data:
         for webpage in data[extension]:
             if webpage not in result:
-                result[webpage] = {}
+                part_one[webpage] = {}
+                part_two[webpage] = {}
             for file in data[extension][webpage]:
-                if file not in result[webpage]:
-                    result[webpage][file] = [extension,]
+                if file not in part_one[webpage]:
+                    part_one[webpage][file] = [extension,]
                 else:
-                    result[webpage][file].append(extension)
+                    part_one[webpage][file].append(extension)
 
-    # Keep interesting cases, that are only commons files
+    # Keep common files in part one
 
-    for wp_key, wp_value in list(result.items()):
+    for wp_key, wp_value in list(part_one.items()):
         for f_key, f_value in list(wp_value.items()):
-            if not len(f_value) > 1:
-                del result[wp_key][f_key]
+            if len(f_value) < len(data) * treshold:
+                # Its not common in as many vpns as we want
+                part_two[wp_key][f_key] = part_one[wp_key].pop(f_key)
+
         
+    return part_one, part_two
+
+def vpn_specific_files(data, treshold=0.7):
+    """Finds files present in most of the webpages a VPN visits. Returns a dictionary that tells the files that obey that rule per each extension.
+    """
+
+    vpn_files = {}
+    webpages = len(data) 
+
+    for webpage in data:
+        for file in data[webpage]:
+            for ext in data[webpage][file]:
+                if ext not in vpn_files:
+                    vpn_files[ext] = {"total": webpages}
+                else:
+                    if file not in vpn_files[ext]:
+                        vpn_files[ext][file] = 1
+                    else:
+                        vpn_files[ext][file] = vpn_files[ext][file] + 1
+    
+    result = {}
+
+    for ext_key, ext_value in list(vpn_files.items()):
+        result[ext_key] = []
+        for f_key, f_value in list(vpn_files[ext_key].items()):
+            if f_key == "total":
+                continue
+            if vpn_files[ext_key][f_key] >= vpn_files[ext_key]["total"] * treshold:
+                result[ext_key].append(f_key)
+    
     return result
                 
 def find_similarities(data):

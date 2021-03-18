@@ -91,7 +91,7 @@ def repetitions_analysis(tree, selector=None):
 
 def discard_resources(data, presence_treshold=1.0):
     """This method discard resources present in the \"no_vpn\" dictionary, 
-    for they are 100% not vpn-dependant."""
+    for they are 100% not vpn-dependant. It discards based on the filename."""
     
     # we will discard stuff from this copy
     res = copy.deepcopy(data)
@@ -119,8 +119,32 @@ def discard_resources(data, presence_treshold=1.0):
         
     return res
 
+def vpn_common_files(data):
+    """Find files common in the different extensions. If this method is executed after discard_resources, the files found are VPN related.
+    """
+    result = {}
+
+    for extension in data:
+        for webpage in data[extension]:
+            if webpage not in result:
+                result[webpage] = {}
+            for file in data[extension][webpage]:
+                if file not in result[webpage]:
+                    result[webpage][file] = [extension,]
+                else:
+                    result[webpage][file].append(extension)
+
+    # Keep interesting cases, that are only commons files
+
+    for wp_key, wp_value in list(result.items()):
+        for f_key, f_value in list(wp_value.items()):
+            if not len(f_value) > 1:
+                del result[wp_key][f_key]
+        
+    return result
+                
 def find_similarities(data):
-    """Find similarity of each file with the files present in the webpage with no vpn."""
+    """Find similarity of each file with the files present in the webpage with no_vpn."""
 
     good_one = copy.deepcopy(data["no_vpn"])
     del data["no_vpn"]

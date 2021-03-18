@@ -137,13 +137,13 @@ def calc_proximity_two(a_dir=INPUT_DIR):
                 continue
     return result
 
-def create_tree(a_dir=INPUT_DIR):
+def create_tree(a_dir=INPUT_DIR, created=[]):
     """Recursively loads all files in thee hierarchy as MH."""
     files = os.listdir(a_dir)
     result = {}
     for f in files:
         a_file = a_dir + os.path.sep + f
-        print("Loading file %s" % a_file)
+        # print("Loading file %s" % a_file)
         if os.path.isdir(a_file):
             result[a_file] = create_tree(a_file)
         elif os.path.isfile(a_file):

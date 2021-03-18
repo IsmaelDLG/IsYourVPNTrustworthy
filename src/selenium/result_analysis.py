@@ -9,6 +9,7 @@ from math import ceil
 
 from pathlib import Path
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.ticker import NullFormatter
 
 from getopt import getopt, GetoptError
@@ -25,18 +26,19 @@ def _repetitions(webpage_tree):
     """Finds metadata on resources are present in the different runs of the webpages, using the treshold. 
     Also orders the data in a logical way and returns 2 dictionaries, one of metadata and one of data."""
     
+    metadata = {
+        "runs" : len(webpage_tree),
+        "max_resources_run": 0,
+        # a huge number
+        "min_resources_run": time() * 99999,
+        "avg_resources_run": 0,
+        "static_resources": 0,
+        "dynamic_resources": 0,
+        "files" : {},
+    }
+    data = {}
+
     if len(webpage_tree) > 0:
-        metadata = {
-            "runs" : len(webpage_tree),
-            "max_resources_run": 0,
-            # a huge number
-            "min_resources_run": time() * 99999,
-            "avg_resources_run": 0,
-            "static_resources": 0,
-            "dynamic_resources": 0,
-            "files" : {},
-        }
-        data = {}
         for run in webpage_tree:
             files_in_run = len(webpage_tree[run])
             if metadata["min_resources_run"] > files_in_run:
@@ -138,7 +140,7 @@ def find_similarities(data):
     result = {}
     while path_data and data:
         for file in good_one[path_data[1]]:
-            print("Jaccard among %s and %s" % (path_data[2], file))
+            # print("Jaccard among %s and %s" % (path_data[2], file))
             path_to_file = "/".join(("no_vpn", path_data[1], file))
             similarity = data["hash"].jaccard(good_one[path_data[1]][file]["hash"])
             try:
@@ -195,9 +197,7 @@ def make_barplot(title, desv_dicc):
     plt.xticks(rotation=45)
     plt.show()
 
-def make_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
-    plt.bar(x_axis, y_axis)
-
+def _format_plot(x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
     if title:
         plt.title(title)
     if x_title:
@@ -209,8 +209,45 @@ def make_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = 
     if y_label_rot:
         plt.yticks(rotation=y_label_rot)
 
+def make_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
+    plt.bar(x_axis, y_axis)
+
+    _format_plot(x_title, y_title, x_label_rot, y_label_rot, x_labels, y_labels, title)
+
     plt.show()
-    
+
+def make_group_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    bar_width = float(0.1)
+    x = np.arange(len(x_axis))
+
+    acc = 0
+    for data in y_axis:
+        a_bar = ax.bar([val + acc for val in x], data, width=bar_width)
+        acc = acc + bar_width
+
+    # Fix the x-axes.
+    ax.set_xticks([val + bar_width*2/3 for val in x])
+    ax.set_xticklabels(x_axis)
+
+    _format_plot(x_title, y_title, x_label_rot, y_label_rot, x_labels, y_labels, title)
+
+    # Axis styling.
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#DDDDDD')
+    ax.tick_params(bottom=False, left=False)
+    ax.set_axisbelow(True)
+    ax.yaxis.grid(True, color='#EEEEEE')
+    ax.xaxis.grid(False)
+    # Add axis and chart labels.
+    ax.set_xlabel(x_title, labelpad=15)
+    ax.set_ylabel(y_title, labelpad=15)
+    fig.tight_layout()
+
+    plt.show()
 
 if __name__ == '__main__':
     
@@ -234,6 +271,8 @@ if __name__ == '__main__':
 
     static_resource_data = {}
     dynamic_resource_data = {}
+    total_resource_data = {}
+    
     for extension in data:
         for webpage in data[extension]:
             if webpage not in static_resource_data:
@@ -245,14 +284,33 @@ if __name__ == '__main__':
                     "keys": [extension,],
                     "values": [ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]),]
                 }
-            
+                total_resource_data[webpage] = {
+                    "keys": [extension,],
+                    "values": [
+                        [data[extension][webpage]["min_resources_run"],],
+                        [data[extension][webpage]["max_resources_run"],],
+                        [data[extension][webpage]["avg_resources_run"],],
+                    ]
+                }
             else:
                 static_resource_data[webpage]["keys"].append(extension)
-                static_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["static_resources"] / data[extension][webpage]["runs"]))
+                try:
+                        static_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["static_resources"] / data[extension][webpage]["runs"]))
+                except ZeroDivisionError:
+                        static_resource_data[webpage]["values"].append(0)
 
                 dynamic_resource_data[webpage]["keys"].append(extension)
-                dynamic_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]))
-    
+                try:
+                        dynamic_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]))
+                except ZeroDivisionError:
+                        dynamic_resource_data[webpage]["values"].append(0)
+
+                total_resource_data[webpage]["keys"].append(extension)
+                total_resource_data[webpage]["values"][0].append(data[extension][webpage]["min_resources_run"])
+                total_resource_data[webpage]["values"][1].append(data[extension][webpage]["max_resources_run"])
+                total_resource_data[webpage]["values"][2].append(data[extension][webpage]["avg_resources_run"])
+
+    """
     for webpage in static_resource_data:
         make_bar_plot(
             static_resource_data[webpage]["keys"],
@@ -267,8 +325,19 @@ if __name__ == '__main__':
             dynamic_resource_data[webpage]["keys"],
             dynamic_resource_data[webpage]["values"],
             x_title="Extension Used",
-            y_title="Nº of static resources per run",
+            y_title="Nº of dynamic resources per run",
             title="Dynamic resources (presence < treshhold * runs) found in webpage %s using different VPN extensions." % webpage
         )
+    """
+    for webpage in static_resource_data:
+        make_group_bar_plot(
+            total_resource_data[webpage]["keys"],
+            total_resource_data[webpage]["values"],
+            x_title="Extension Used",
+            y_title="# of MIN/MAX/AVG resources per run",
+            title="Resources found in webpage %s using different VPN extensions." % webpage
+        )
+
+
 
 

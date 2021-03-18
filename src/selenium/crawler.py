@@ -89,7 +89,7 @@ class Crawler:
         self._driver.switch_to.window(self._driver.window_handles[-1])
         sleep(0.25)
         self._driver.get('chrome://settings/clearBrowserData') # for old chromedriver versions use cleardriverData
-        sleep(1)
+        sleep(3)
         actions = ActionChains(self._driver) 
         actions.send_keys(Keys.TAB * 3 + Keys.DOWN * 3) # send right combination
         actions.perform()
@@ -207,7 +207,7 @@ class Crawler:
         
         # This might raise exception. it will be captured in Crawler Manager.
         self._driver.get("https://" + domain)
-        sleep(10)
+        sleep(3)
         # Get network traffic dictionary
         log_entries = self._driver.get_log('performance')
         network_traffic = self._get_network(log_entries)
@@ -293,11 +293,13 @@ class CrawlerManager:
         self._crawler = Crawler(runs, extension, current_url, current_run)
 
         # Workaround to activate extensions manually
-        wait = True
-        while wait:
-            wait = input("Start? [y/n]: ") != "y"
+        if extension:
+            wait = True
+            while wait:
+                wait = input("Start? [y/n]: ") != "y"
 
         self.run()
+        self._crawler.close()
 
     def run(self):
         try:
@@ -312,9 +314,12 @@ class CrawlerManager:
                 extension=self._crawler._extension,
                 current_url=self._crawler._current_url+1, 
                 current_run=self._crawler._current_run)
-            wait = True
-            while wait:
-                wait = input("Start? [y/n]: ") != "y"
+
+            if self._crawler._extension:
+                wait = True
+                while wait:
+                    wait = input("Start? [y/n]: ") != "y"
+                    
             self.run()
 
     

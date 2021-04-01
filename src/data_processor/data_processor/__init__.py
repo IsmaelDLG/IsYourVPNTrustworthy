@@ -8,6 +8,11 @@ class DataProcessor:
     def __init__(self, database):
         self._name = "DataProcessor_%.3f" % time()
         self._db = database
+
+    def get_metadata(self):
+        """Gets metadata from the different RunCollections present in the database.
+        """
+        pass
     
     
 

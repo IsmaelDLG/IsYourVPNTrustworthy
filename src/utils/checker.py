@@ -1,6 +1,6 @@
 import os
 
-_DESCARGAS = "/home/ismael/Descargas/"
+_DESCARGAS = "/home/ismael/Downloads/"
 
 for vpn in os.listdir(_DESCARGAS):
     if os.path.isdir(_DESCARGAS + vpn):

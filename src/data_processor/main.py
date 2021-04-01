@@ -3,6 +3,8 @@ from sys import argv, stdout
 import logging
 from os import listdir, path, remove, sep
 import time
+import random
+from gc import collect as gc_collect
 
 from numpy import array2string
 import objgraph
@@ -112,7 +114,7 @@ if __name__ == '__main__':
         collections =  make_resource_collection_from_files(str(_DATA_DIRECTORY))
         try:
             for col in collections: 
-                stored_collections = db.load_collections(names=[col.get_name(),], recursive=True)
+                stored_collections = db.load_collections(collection_conditions=[("name", "=", col.get_name()),], recursive=True)
                 joined = False
                 i = 0
                 while not joined and i < len(stored_collections):
@@ -123,6 +125,12 @@ if __name__ == '__main__':
                     stored_collections.append(col)
             
                 db.save_all(stored_collections)
+                
+                del stored_collections
+                del col
+
+                gc_collect()
+
         except MemoryError as e:
             _logger.exception(str(e))
             objgraph.show_most_common_types()

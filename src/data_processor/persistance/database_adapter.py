@@ -73,10 +73,9 @@ class Database:
         """Internal select function.
         """
 
-        request = "SELECT "
-        field_list = ", ".join(fields)
-        request += field_list
-        request += " FROM " + ", ".join(tables)
+        
+        request = "SELECT {fields} FROM {table}{conditions}{order}"
+
         if conditions:
             cond_list = " WHERE "
             for index, cond in enumerate(conditions):
@@ -88,13 +87,23 @@ class Database:
                     cond_list += " IS NOT %s)"
                     values[index] = None
                 else:
-                    cond_list += " = %s)"
+                    cond_list += " %s)"
                 if index < len(conditions) - 1:
                     cond_list += " AND "
-            request += cond_list
+        else:
+            cond_list = ""
+
         if order:
-            request += " ORDER BY " + ", ".join(order)
-        
+            ord_list = " ORDER BY {0}".format(", ".join(order))
+        else:
+            ord_list = ""
+
+        request.format(
+            fields=", ".join(fields),
+            tables=", ".join(tables),
+            conditions=cond_list,
+            order=ord_list
+        )
         cursor = self.conn.cursor(dictionary=True)
         results = []
         try:
@@ -104,12 +113,6 @@ class Database:
                 cursor.execute(request)
         except Exception as error:
             _logger.exception(str(error))
-            """
-            if values:
-                _logger.error(request % tuple(values))
-            else:
-                _logger.error(request)
-            """
         else:
             for row in cursor.fetchall():
                 result = {}
@@ -118,7 +121,7 @@ class Database:
                     if row[key] == "NULL":
                         result[key] = None
                 results.append(result)
-            _logger.debug("SELECT REQUEST ON %s OK." % ", ".join(tables) + "\n-----------------")
+            _logger.debug("SELECT REQUEST ON {0} OK.".format(", ".join(tables)))
         cursor.close()
         return results
 
@@ -136,27 +139,22 @@ class Database:
         if fields and len(fields) + len(conditions) != len(values):
             _logger.warning("Incorrect number of fields/conditions/values")
             return False
-        request = "UPDATE " + table
-        request += " SET " + fields[0] + " = %s"
-        if len(fields) > 1:
-            for index in range(1, len(fields)):
-                request += ", " + fields[index] + " = %s"
-        request += " WHERE " + conditions[0] + " = %s"
-        if len(conditions) > 1:
-            for index in range(1, len(conditions)):
-                request += " AND " + conditions[index] + " = %s"
+
+        request = "UPDATE {table} SET {fields} WHERE {conditions}"
+        request.format(
+            table=table,
+            fields=" = %s,".join(fields + ["0"])[0:-2],
+            conditions=" %s".join(conditions + ["0"])[:-1]
+        )
         cursor = self.conn.cursor(dictionary=True)
         try:
             cursor.execute(request, tuple(values))
         except Exception as error:
-            """
-            _logger.error(request % tuple(values))
-            """
             _logger.exception(str(error))
             cursor.close()
             return False
         else:
-            _logger.debug("UPDATE REQUEST OK.\n-----------------")
+            _logger.debug("UPDATE REQUEST OK.")
             cursor.close()
             return True
     
@@ -175,7 +173,7 @@ class Database:
             if key != "id":
                 fields.append(key)
                 values.append(element[key])
-        conditions.append("id")
+        conditions.append("id =")
         values.append(element["id"])
         result = self.__update(table, fields, conditions, values)
 
@@ -188,6 +186,9 @@ class Database:
         if fields and len(fields) != len(values):
             _logger.warning("Incorrect number of field/values")
             return -1
+        
+        """
+        # Old method,  very memory inefficient
         request = "INSERT INTO " + table
         if fields:
             request += " (" + fields[0]
@@ -209,6 +210,13 @@ class Database:
         new_values = values.copy()
         for value in new_values:
             values.append(value)
+        """
+        request = "INSERT INTO {table} ({fields}) VALUES ({values})"
+        request.format(
+            table=table,
+            fields=", ".join(fields),
+            values="%s, "*len(values)[0:-2]
+        )
         cursor = self.conn.cursor(dictionary=True)
         try:
             cursor.execute(request, tuple(values))
@@ -221,7 +229,7 @@ class Database:
         else:
             self.conn.commit()
             row_id = cursor.lastrowid
-            _logger.debug("INSERT REQUEST ON %s OK. Row_id: %i \n-----------------" % (table, row_id))
+            _logger.debug("INSERT REQUEST ON {0} OK. Row_id: {1}".format(table, row_id))
             cursor.close()
             return row_id
 
@@ -249,24 +257,33 @@ class Database:
         Returns True on success.
         """
 
+        """
+        # Old way, not very memory efficient
         request = "DELETE FROM " + table
-        request += " WHERE " + conditions[0] + " = %s"
+        request += " WHERE " + conditions[0] + " %s"
         if len(conditions) > 1:
             for index in range(1, len(conditions)):
-                request += " AND " + conditions[index] + " = %s"
+                request += " AND " + conditions[index] + " %s"
+        """
+        # Slightly improved version
+        request = "DELETE FROM {table} WHERE {conditions}"
+        request.format(
+            table=table,
+            conditions=" %s AND".join(conditions + ["0"])[0:-5]
+        )
         cursor = self.conn.cursor(dictionary=True)
         try:
             cursor.execute(request, tuple(values))
-        except MySQLdb.Error as error:
+        except Exception as error:
             """
             _logger.error(request % tuple(values))
             """
-            _logger.error("SQL ERROR: " + str(error) + "\n-----------------")
+            _logger.exception(str(error))
             cursor.close()
             return False
         else:
             self.conn.commit()
-            _logger.debug("DELETE REQUEST OK.\n-----------------")
+            _logger.debug("DELETE REQUEST OK.")
             cursor.close()
             return True
     
@@ -291,13 +308,22 @@ class DatabaseAdapter:
         self._db = Database(_DB_HOSTNAME, _DB_USER, _DB_PASSWORD, _DB_DATABASE)
         self._db.initialize()
 
-    def _translate_to_resource(self, resource):
+    def _translate_to_resource(self, resource, variety_conditions=[]):
         """Translates an object from the database into a resource object.
 
         This method returns a Resource object.
         """
 
-        row_list = self._db.select(["id", "name", "hash", "content"], ["Varieties",], ["resource_id"], [str(resource["id"])], None)
+        conditions = []
+        values = []
+        try:
+            for cond, val in variety_conditions:
+                conditions.append(cond)
+                values.append(val)
+        except ValueError:
+            raise RuntimeError("Error: variety_conditins requires tuples of 2 values in every condition.")
+
+        row_list = self._db.select(["id", "name", "hash", "content"], ["Varieties",], ["resource_id ="].extend(conditions), [str(resource["id"])].extend(values), None)
         variety_list = []
         for vrow in row_list:
             # Make string representation of array
@@ -347,14 +373,23 @@ class DatabaseAdapter:
 
         return resource_row, variety_group
     
-    def _translate_to_run(self, run):
+    def _translate_to_run(self, run, resource_conditions=[], variety_conditions=[]):
         """Translates a row from the DB into a Run object from the domain.
         """
+
+        conditions = []
+        values = []
+        try:
+            for cond, val in resource_conditions:
+                conditions.append(cond)
+                values.append(val)
+        except ValueError:
+            raise RuntimeError("Error: resource_conditins requires tuples of 2 values in every condition.")
     
-        row_list = self._db.select(["id", "extension", "webpage"], ["Resources",], ["run_id"], [str(run["id"])], None)
+        row_list = self._db.select(["id", "extension", "webpage"], ["Resources",], ["run_id ="].extend(conditions), [str(run["id"])].extend(values), None)
         list_of_resources = []
         for rrow in row_list:
-            list_of_resources.append(self._translate_to_resource(rrow))
+            list_of_resources.append(self._translate_to_resource(rrow, vairety_conditions=variety_conditions))
 
         result = Run(run["name"], data=list_of_resources)
         result.set_id(run["id"])
@@ -393,14 +428,23 @@ class DatabaseAdapter:
 
         return row
 
-    def _translate_to_collection(self, collection):
+    def _translate_to_collection(self, collection, run_conditions=[], resource_conditions=[], variety_conditions=[]):
         """Translates a row from the DB into a RunCollection object from the domain.
         """
 
-        rows = self._db.select(["id", "name", "comparison_threshold", "collection_id"], ["Runs",], ["collection_id"], [str(collection["id"])], None)
+        conditions = []
+        values = []
+        try:
+            for cond, val in run_conditions:
+                conditions.append(cond)
+                values.append(val)
+        except ValueError:
+            raise RuntimeError("Error: run_conditions requires tuples of 2 values in every condition.")
+
+        rows = self._db.select(["id", "name", "comparison_threshold", "collection_id"], ["Runs",], ["collection_id ="].extend(conditions), [str(collection["id"])].extend(values), None)
         run_list = []
         for rrow in rows:
-                run_list.append(self._translate_to_run(rrow))
+                run_list.append(self._translate_to_run(rrow, resource_conditions=resource_conditions, variety_conditions=variety_conditions))
         
         res = RunCollection(collection["name"], data=run_list)
         res.set_id(collection["id"])
@@ -455,20 +499,49 @@ class DatabaseAdapter:
         for obj in obj_list:
             self.save(obj)
     
-    def load_collections(self, names=None, recursive=False):
-        """Loads RunCollections from the DB. names can be None or a list of the collections you want to load.
+    def load_collections(self, recursive=False, collection_conditions=[], run_conditions=[], resource_conditions=[], variety_conditions=[]):
+        """Loads RunCollections from the DB.
+
         If recursive is True, loads also all the objects inside.
+
+        Parameters collection_conditions, run_conditions, resource_conditions and variety_conditions 
+        must be lists of tuples of 2 elements. These specify conditions that the object loaded must fullfil.
+        
+        Example 1:
+
+            - collection_condition=[("name =", "no_vpn")]
+
+            This will only load collections that have the name "no_vpn".
+        
+        Example 2:
+
+            - collection_condition=[("name =", "no_vpn"),]
+            - run_condition=[("name >", "1")]
+            - resource_condition=[("webpage =", "buydomains-com")]
+
+            This will only load collections that have the name "no_vpn", that contain runs with 
+            a name greater than "1" and with resources that belong to the webpage "buydomains-com".
+
+            :returns: [RunCollection(),...]
         """
+        conditions = []
+        values = []
+        try:
+            for cond, val in collection_conditions:
+                conditions.append(cond)
+                values.append(val)
+        except ValueError:
+            raise RuntimeError("Error: collection_conditins requires tuples of 2 values in every condition.")
 
         total_rows = []
         if not (names is None):
             for name in names:
-                col_rows = self._db.select(["id", "name"], ["RunCollections",], ["name"], [name], ["name"])
+                col_rows = self._db.select(["id", "name"], ["RunCollections",], conditions, values, ["name"])
                 total_rows.extend(col_rows)
 
         result = []
         for crow in total_rows:
-            result.append(self._translate_to_collection(crow))
+            result.append(self._translate_to_collection(crow, run_conditions=run_conditions, resource_conditions=resource_conditions, variety_conditions=variety_conditions))
 
         return result
 

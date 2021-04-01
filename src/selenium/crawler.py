@@ -5,6 +5,7 @@ This module is used to look for javascript injection from the extension vpns ava
 
 import os
 from time import sleep, time
+from random import random
 from json import loads as jloads
 from datetime import datetime, timezone
 import requests
@@ -241,6 +242,9 @@ class Crawler:
             created = False
             run_number = self._current_run
             run_dir = ""
+
+            """
+            # Run numbers are now based in timestamps, for files will be deleted after being stored in the db
             while not created:
                 run_dir = domain_dir + str(run_number) + os.path.sep
                 try:
@@ -249,6 +253,15 @@ class Crawler:
                 except OSError:
                     # Run already exists, don't mix files!
                     run_number = run_number + 1
+            """
+
+            run_dir = domain_dir + "%.3f" % time() + os.path.sep
+            try:
+                os.makedirs(run_dir)
+            except:
+                sleep(random()*5)
+                run_dir = domain_dir + "%.3f" % time() + os.path.sep
+                os.makedirs(run_dir)
 
             self.navigate_to(url)
             self.clear_data()

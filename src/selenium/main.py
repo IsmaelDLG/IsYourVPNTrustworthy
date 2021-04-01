@@ -117,7 +117,6 @@ if __name__ == '__main__':
         with open("results/metadata_analysis.json", 'w') as f:
             jdump(metadata, f, indent=4, cls=MyEncoder)
         
-        del metadata
         
         printable2 = discard_resources(data)
 
@@ -127,10 +126,11 @@ if __name__ == '__main__':
         """
 
         print("Finding vpn-related files (Not extension-related).")
-        present_in_all_vpns, not_present_in_all_vpns = vpn_common_files(printable2)
+        present_in_all_vpns, not_present_in_all_vpns = vpn_common_files(metadata)
         with open("results/vpn_related_files.json", 'w') as f:
             jdump(present_in_all_vpns, f, indent=4, cls=MyEncode)
         
+        print("Finding files introduced by a specic VPN.")
         vpn_specific_files = vpn_specific_files(not_present_in_all_vpns)
         with open("results/vpn_specific_files.json", 'w') as f:
             jdump(vpn_specific_files, f, indent=4, cls=MyEncode)

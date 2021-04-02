@@ -15,26 +15,26 @@ from matplotlib.ticker import NullFormatter
 from getopt import getopt, GetoptError
 
 
-
-_INPUT_FILE=Path('./metadata_analysis.json')
+_INPUT_FILE = Path("./metadata_analysis.json")
 _REP_TRESHOLD = 0.80
 
 
 # FILE ANALYSIS
 
+
 def _repetitions(webpage_tree):
-    """Finds metadata on resources are present in the different runs of the webpages, using the treshold. 
+    """Finds metadata on resources are present in the different runs of the webpages, using the treshold.
     Also orders the data in a logical way and returns 2 dictionaries, one of metadata and one of data."""
-    
+
     metadata = {
-        "runs" : len(webpage_tree),
+        "runs": len(webpage_tree),
         "max_resources_run": 0,
         # a huge number
         "min_resources_run": time() * 99999,
         "avg_resources_run": 0,
         "static_resources": 0,
         "dynamic_resources": 0,
-        "files" : {},
+        "files": {},
     }
     data = {}
 
@@ -57,24 +57,33 @@ def _repetitions(webpage_tree):
                         "hash": webpage_tree[run][f],
                     }
                 else:
-                    metadata["files"][filename]["reps"] = metadata["files"][filename]["reps"] + 1
+                    metadata["files"][filename]["reps"] = (
+                        metadata["files"][filename]["reps"] + 1
+                    )
                     data[filename]["reps"] = data[filename]["reps"] + 1
 
-        metadata["avg_resources_run"] = int(metadata["avg_resources_run"] / metadata["runs"])
+        metadata["avg_resources_run"] = int(
+            metadata["avg_resources_run"] / metadata["runs"]
+        )
 
         for f in data:
             if metadata["files"][f]["reps"] >= (metadata["runs"] * _REP_TRESHOLD):
-                metadata["static_resources"] = metadata["static_resources"] + metadata["files"][f]["reps"]
+                metadata["static_resources"] = (
+                    metadata["static_resources"] + metadata["files"][f]["reps"]
+                )
             else:
-                metadata["dynamic_resources"] = metadata["dynamic_resources"] + metadata["files"][f]["reps"]
+                metadata["dynamic_resources"] = (
+                    metadata["dynamic_resources"] + metadata["files"][f]["reps"]
+                )
 
     return metadata, data
 
+
 def repetitions_analysis(tree, selector=None):
-    """Gets repetition data for all results. If selector is set, it indicates which 
+    """Gets repetition data for all results. If selector is set, it indicates which
     trees should be visited. selector is a list of strings that ndicate the name of
     the root of each tree."""
-    
+
     metadata = {}
     data = {}
     for extension_dir in tree:
@@ -86,20 +95,22 @@ def repetitions_analysis(tree, selector=None):
         data[extension] = {}
         for webpage_dir in tree[extension_dir]:
             webpage = webpage_dir.split(os.path.sep)[-1]
-            metadata[extension][webpage], data[extension][webpage] = _repetitions(tree[extension_dir][webpage_dir])
+            metadata[extension][webpage], data[extension][webpage] = _repetitions(
+                tree[extension_dir][webpage_dir]
+            )
     return metadata, data
 
+
 def discard_resources(data, presence_treshold=1.0):
-    """This method discard resources present in the \"no_vpn\" dictionary, 
+    """This method discard resources present in the \"no_vpn\" dictionary,
     for they are 100% not vpn-dependant. It discards based on the filename."""
-    
+
     # we will discard stuff from this copy
     res = copy.deepcopy(data)
-    
+
     # to compare easier
     good_one = copy.deepcopy(data["no_vpn"])
     del data["no_vpn"]
-
 
     to_del = []
 
@@ -116,10 +127,11 @@ def discard_resources(data, presence_treshold=1.0):
             del data["no_vpn"][webpage][file]
         except KeyError:
             pass
-        
+
     return res
 
-def vpn_common_files(data, treshold = 0.7):
+
+def vpn_common_files(data, treshold=0.7):
     """Find files common in the different extensions. If this method is executed after discard_resources, the files found are VPN related.
 
     This method returns two dictionaries. One with the files found in multiple VPNs (using the treshold to determine the amount), and one with the files that were not.
@@ -134,7 +146,9 @@ def vpn_common_files(data, treshold = 0.7):
                 part_two[webpage] = {}
             for file in data[extension][webpage]:
                 if file not in part_one[webpage]:
-                    part_one[webpage][file] = [extension,]
+                    part_one[webpage][file] = [
+                        extension,
+                    ]
                 else:
                     part_one[webpage][file].append(extension)
 
@@ -146,15 +160,14 @@ def vpn_common_files(data, treshold = 0.7):
                 # Its not common in as many vpns as we want
                 part_two[wp_key][f_key] = part_one[wp_key].pop(f_key)
 
-        
     return part_one, part_two
 
+
 def vpn_specific_files(data, treshold=0.7):
-    """Finds files present in most of the webpages a VPN visits. Returns a dictionary that tells the files that obey that rule per each extension.
-    """
+    """Finds files present in most of the webpages a VPN visits. Returns a dictionary that tells the files that obey that rule per each extension."""
 
     vpn_files = {}
-    webpages = len(data) 
+    webpages = len(data)
 
     for webpage in data:
         for file in data[webpage]:
@@ -166,7 +179,7 @@ def vpn_specific_files(data, treshold=0.7):
                         vpn_files[ext][file] = 1
                     else:
                         vpn_files[ext][file] = vpn_files[ext][file] + 1
-    
+
     result = {}
 
     for ext_key, ext_value in list(vpn_files.items()):
@@ -176,9 +189,10 @@ def vpn_specific_files(data, treshold=0.7):
                 continue
             if vpn_files[ext_key][f_key] >= vpn_files[ext_key]["total"] * treshold:
                 result[ext_key].append(f_key)
-    
+
     return result
-                
+
+
 def find_similarities(data):
     """Find similarity of each file with the files present in the webpage with no_vpn."""
 
@@ -186,7 +200,7 @@ def find_similarities(data):
     del data["no_vpn"]
 
     all_minhashes = []
-    
+
     # put everything easy to work with
     for extension in data:
         for webpage in data[extension]:
@@ -206,7 +220,9 @@ def find_similarities(data):
             try:
                 result["/".join(path_data)].append((path_to_file, similarity))
             except KeyError:
-                result["/".join(path_data)] = [(path_to_file, similarity),]
+                result["/".join(path_data)] = [
+                    (path_to_file, similarity),
+                ]
 
         all_minhashes.append((path_data, data))
         try:
@@ -215,6 +231,7 @@ def find_similarities(data):
             path_data = data = None
 
     return result
+
 
 def find_uniques(data, similarity_treshold=0.8):
     """Deletes entries if they have similarity_treshold or higher with at least one file of the site without a vpn active."""
@@ -234,17 +251,17 @@ def find_uniques(data, similarity_treshold=0.8):
                     current_max = sim
                     current_file = path
 
-            res[key] = { 
-                "max_similarity":current_max,
-                "file": current_file
-                }
-    
+            res[key] = {"max_similarity": current_max, "file": current_file}
+
     return res
+
 
 def desviation(a_list):
     return statistics.stdev(a_list)
 
+
 # PLOTS
+
 
 def make_barplot(title, desv_dicc):
     keys = []
@@ -257,7 +274,16 @@ def make_barplot(title, desv_dicc):
     plt.xticks(rotation=45)
     plt.show()
 
-def _format_plot(x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
+
+def _format_plot(
+    x_title=None,
+    y_title=None,
+    x_label_rot=None,
+    y_label_rot=None,
+    x_labels=None,
+    y_labels=None,
+    title=None,
+):
     if title:
         plt.title(title)
     if x_title:
@@ -269,14 +295,36 @@ def _format_plot(x_title = None, y_title = None, x_label_rot = None, y_label_rot
     if y_label_rot:
         plt.yticks(rotation=y_label_rot)
 
-def make_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
+
+def make_bar_plot(
+    x_axis,
+    y_axis,
+    x_title=None,
+    y_title=None,
+    x_label_rot=None,
+    y_label_rot=None,
+    x_labels=None,
+    y_labels=None,
+    title=None,
+):
     plt.bar(x_axis, y_axis)
 
     _format_plot(x_title, y_title, x_label_rot, y_label_rot, x_labels, y_labels, title)
 
     plt.show()
 
-def make_group_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_rot = None, y_label_rot = None, x_labels = None, y_labels = None, title = None):
+
+def make_group_bar_plot(
+    x_axis,
+    y_axis,
+    x_title=None,
+    y_title=None,
+    x_label_rot=None,
+    y_label_rot=None,
+    x_labels=None,
+    y_labels=None,
+    title=None,
+):
     fig, ax = plt.subplots(figsize=(12, 8))
 
     bar_width = float(0.1)
@@ -288,19 +336,19 @@ def make_group_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_
         acc = acc + bar_width
 
     # Fix the x-axes.
-    ax.set_xticks([val + bar_width*2/3 for val in x])
+    ax.set_xticks([val + bar_width * 2 / 3 for val in x])
     ax.set_xticklabels(x_axis)
 
     _format_plot(x_title, y_title, x_label_rot, y_label_rot, x_labels, y_labels, title)
 
     # Axis styling.
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.spines['bottom'].set_color('#DDDDDD')
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.spines["bottom"].set_color("#DDDDDD")
     ax.tick_params(bottom=False, left=False)
     ax.set_axisbelow(True)
-    ax.yaxis.grid(True, color='#EEEEEE')
+    ax.yaxis.grid(True, color="#EEEEEE")
     ax.xaxis.grid(False)
     # Add axis and chart labels.
     ax.set_xlabel(x_title, labelpad=15)
@@ -309,66 +357,104 @@ def make_group_bar_plot(x_axis, y_axis, x_title = None, y_title = None, x_label_
 
     plt.show()
 
-if __name__ == '__main__':
-    
+
+if __name__ == "__main__":
+
     short_opts = "hf:"
-    long_opts = ["help","metadata-file="]
+    long_opts = ["help", "metadata-file="]
 
     try:
         opts, args = getopt(sys.argv[1:], short_opts, long_opts)
     except Exception:
         _usage()
-    
+
     for opt, arg in opts:
-        if opt in ('-h', '--help') :
+        if opt in ("-h", "--help"):
             _usage()
-        elif opt in ('-f', '--metadata-file'):
+        elif opt in ("-f", "--metadata-file"):
             _INPUT_FILE = Path(arg).absolute()
-    
-    with open(_INPUT_FILE, 'r') as f:
+
+    with open(_INPUT_FILE, "r") as f:
         data = json.load(f)
-    
 
     static_resource_data = {}
     dynamic_resource_data = {}
     total_resource_data = {}
-    
+
     for extension in data:
         for webpage in data[extension]:
             if webpage not in static_resource_data:
                 static_resource_data[webpage] = {
-                    "keys": [extension,],
-                    "values": [ceil(data[extension][webpage]["static_resources"] / data[extension][webpage]["runs"]),]
+                    "keys": [
+                        extension,
+                    ],
+                    "values": [
+                        ceil(
+                            data[extension][webpage]["static_resources"]
+                            / data[extension][webpage]["runs"]
+                        ),
+                    ],
                 }
                 dynamic_resource_data[webpage] = {
-                    "keys": [extension,],
-                    "values": [ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]),]
+                    "keys": [
+                        extension,
+                    ],
+                    "values": [
+                        ceil(
+                            data[extension][webpage]["dynamic_resources"]
+                            / data[extension][webpage]["runs"]
+                        ),
+                    ],
                 }
                 total_resource_data[webpage] = {
-                    "keys": [extension,],
+                    "keys": [
+                        extension,
+                    ],
                     "values": [
-                        [data[extension][webpage]["min_resources_run"],],
-                        [data[extension][webpage]["max_resources_run"],],
-                        [data[extension][webpage]["avg_resources_run"],],
-                    ]
+                        [
+                            data[extension][webpage]["min_resources_run"],
+                        ],
+                        [
+                            data[extension][webpage]["max_resources_run"],
+                        ],
+                        [
+                            data[extension][webpage]["avg_resources_run"],
+                        ],
+                    ],
                 }
             else:
                 static_resource_data[webpage]["keys"].append(extension)
                 try:
-                        static_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["static_resources"] / data[extension][webpage]["runs"]))
+                    static_resource_data[webpage]["values"].append(
+                        ceil(
+                            data[extension][webpage]["static_resources"]
+                            / data[extension][webpage]["runs"]
+                        )
+                    )
                 except ZeroDivisionError:
-                        static_resource_data[webpage]["values"].append(0)
+                    static_resource_data[webpage]["values"].append(0)
 
                 dynamic_resource_data[webpage]["keys"].append(extension)
                 try:
-                        dynamic_resource_data[webpage]["values"].append(ceil(data[extension][webpage]["dynamic_resources"] / data[extension][webpage]["runs"]))
+                    dynamic_resource_data[webpage]["values"].append(
+                        ceil(
+                            data[extension][webpage]["dynamic_resources"]
+                            / data[extension][webpage]["runs"]
+                        )
+                    )
                 except ZeroDivisionError:
-                        dynamic_resource_data[webpage]["values"].append(0)
+                    dynamic_resource_data[webpage]["values"].append(0)
 
                 total_resource_data[webpage]["keys"].append(extension)
-                total_resource_data[webpage]["values"][0].append(data[extension][webpage]["min_resources_run"])
-                total_resource_data[webpage]["values"][1].append(data[extension][webpage]["max_resources_run"])
-                total_resource_data[webpage]["values"][2].append(data[extension][webpage]["avg_resources_run"])
+                total_resource_data[webpage]["values"][0].append(
+                    data[extension][webpage]["min_resources_run"]
+                )
+                total_resource_data[webpage]["values"][1].append(
+                    data[extension][webpage]["max_resources_run"]
+                )
+                total_resource_data[webpage]["values"][2].append(
+                    data[extension][webpage]["avg_resources_run"]
+                )
 
     """
     for webpage in static_resource_data:
@@ -395,9 +481,6 @@ if __name__ == '__main__':
             total_resource_data[webpage]["values"],
             x_title="Extension Used",
             y_title="# of MIN/MAX/AVG resources per run",
-            title="Resources found in webpage %s using different VPN extensions." % webpage
+            title="Resources found in webpage %s using different VPN extensions."
+            % webpage,
         )
-
-
-
-

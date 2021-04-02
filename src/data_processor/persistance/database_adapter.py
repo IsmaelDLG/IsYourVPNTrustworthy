@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 
 from mysql import connector
 from numpy import array, array2string
@@ -7,23 +8,24 @@ from numpy import uint64
 from config import _DB_DATABASE, _DB_HOSTNAME, _DB_PASSWORD, _DB_USER
 from persistance import Resource, Run, RunCollection
 
+
 class Database:
     def __init__(self, host, user, password, db_name):
         self.host = host
         self.user = user
         self.password = password
         self.db = db_name
-        self.conn = connector.connect(host=host, user=user, passwd=password, db="vpntfg0")
+        self.conn = connector.connect(
+            host=host, user=user, passwd=password, db="vpntfg0"
+        )
 
     def close(self):
-        """Closes the connection to the database.
-        """
+        """Closes the connection to the database."""
 
         self.conn.close()
-    
+
     def initialize(self):
-        """Initializes the database, creating tables if needed.
-        """
+        """Initializes the database, creating tables if needed."""
 
         cursor = self.conn.cursor()
 
@@ -34,7 +36,6 @@ class Database:
                 name VARCHAR(14)
             );"""
         )
-
 
         # This table holds in which run each appears.
         cursor.execute(
@@ -61,7 +62,7 @@ class Database:
             """CREATE TABLE IF NOT EXISTS Varieties (
                 id INT AUTO_INCREMENT PRIMARY KEY, 
                 resource_id INT NOT NULL REFERENCES Resources(id), 
-                name VARCHAR(32), 
+                name VARCHAR(40), 
                 hash VARCHAR(10000), 
                 content MEDIUMBLOB
             );"""
@@ -70,11 +71,9 @@ class Database:
         _logger.debug("Database initialized")
 
     def __select(self, fields, tables, conditions, values, order):
-        """Internal select function.
-        """
+        """Internal select function."""
 
-        
-        request = "SELECT {fields} FROM {table}{conditions}{order}"
+        request = "SELECT {fields} FROM {tables}{conditions}{order}"
 
         if conditions:
             cond_list = " WHERE "
@@ -98,14 +97,15 @@ class Database:
         else:
             ord_list = ""
 
-        request.format(
+        request = request.format(
             fields=", ".join(fields),
             tables=", ".join(tables),
             conditions=cond_list,
-            order=ord_list
+            order=ord_list,
         )
         cursor = self.conn.cursor(dictionary=True)
         results = []
+        _logger.debug("%r, %r" % (request, values))
         try:
             if values:
                 cursor.execute(request, tuple(values))
@@ -121,30 +121,32 @@ class Database:
                     if row[key] == "NULL":
                         result[key] = None
                 results.append(result)
-            _logger.debug("SELECT REQUEST ON {0} OK.".format(", ".join(tables)))
+            _logger.debug(
+                "SELECT REQUEST ON {0} OK. Results: {1}".format(
+                    ", ".join(tables), results
+                )
+            )
         cursor.close()
         return results
 
     def select(self, fields, tables, conditions, values, order):
-        """Calls the internal _select function. 
-        """
+        """Calls the internal _select function."""
 
         result = self.__select(fields, tables, conditions, values, order)
         return result
-    
+
     def __update(self, table, fields, conditions, values):
-        """Internal update fucntion.
-        """
+        """Internal update fucntion."""
 
         if fields and len(fields) + len(conditions) != len(values):
             _logger.warning("Incorrect number of fields/conditions/values")
             return False
 
         request = "UPDATE {table} SET {fields} WHERE {conditions}"
-        request.format(
+        request = request.format(
             table=table,
             fields=" = %s,".join(fields + ["0"])[0:-2],
-            conditions=" %s".join(conditions + ["0"])[:-1]
+            conditions=" %s".join(conditions + ["0"])[:-1],
         )
         cursor = self.conn.cursor(dictionary=True)
         try:
@@ -154,12 +156,12 @@ class Database:
             cursor.close()
             return False
         else:
-            _logger.debug("UPDATE REQUEST OK.")
+            _logger.debug("UPDATE REQUEST ON %s OK." % table)
             cursor.close()
             return True
-    
+
     def update(self, table, element):
-        """Update the table for the given element id, using the internal function. 
+        """Update the table for the given element id, using the internal function.
 
         Returns False if the request failed, else True.
         """
@@ -180,50 +182,20 @@ class Database:
         return result
 
     def __insert(self, table, fields, values):
-        """Creates a standard INSERT request. 
-        """
+        """Creates a standard INSERT request."""
 
         if fields and len(fields) != len(values):
             _logger.warning("Incorrect number of field/values")
             return -1
-        
-        """
-        # Old method,  very memory inefficient
-        request = "INSERT INTO " + table
-        if fields:
-            request += " (" + fields[0]
-            if len(fields) > 1:
-                for index in range(1, len(fields)):
-                    request += ", " + fields[index]
-            request += ")"
-        request += " VALUES (%s"
-        if len(values) > 1:
-            for index in range(1, len(values)):
-                request += ", %s"
-        request += ")"
-        request += " ON DUPLICATE KEY UPDATE "
-        if fields:
-            request += fields[0]+"=%s"
-            if len(fields) > 1:
-                for index in range(1, len(fields)):
-                    request += ", " + fields[index] + "=%s"
-        new_values = values.copy()
-        for value in new_values:
-            values.append(value)
-        """
+
         request = "INSERT INTO {table} ({fields}) VALUES ({values})"
-        request.format(
-            table=table,
-            fields=", ".join(fields),
-            values="%s, "*len(values)[0:-2]
+        request = request.format(
+            table=table, fields=", ".join(fields), values=("%s, " * len(values))[0:-2]
         )
         cursor = self.conn.cursor(dictionary=True)
         try:
             cursor.execute(request, tuple(values))
         except Exception as error:
-            """
-            _logger.error(request % tuple(values))
-            """
             _logger.exception(str(error))
             return -1
         else:
@@ -234,11 +206,11 @@ class Database:
             return row_id
 
     def insert(self, table, element):
-        """Insert the element if it can not be updated first (doesn't exists) using the internal function. 
+        """Insert the element if it can not be updated first (doesn't exists) using the internal function.
 
         If successful returns lastrowid.
         """
-        
+
         update = self.update(table, element)
         if update:
             return update
@@ -250,34 +222,23 @@ class Database:
             values.append(element[key])
         result = self.__insert(table, fields, values)
         return result
-    
+
     def __delete(self, table, conditions, values):
         """Creates and executes a standard DELETE request.
-        
+
         Returns True on success.
         """
 
-        """
-        # Old way, not very memory efficient
-        request = "DELETE FROM " + table
-        request += " WHERE " + conditions[0] + " %s"
-        if len(conditions) > 1:
-            for index in range(1, len(conditions)):
-                request += " AND " + conditions[index] + " %s"
-        """
         # Slightly improved version
         request = "DELETE FROM {table} WHERE {conditions}"
-        request.format(
-            table=table,
-            conditions=" %s AND".join(conditions + ["0"])[0:-5]
+        request = request.format(
+            table=table, conditions=" %s AND".join(conditions + ["0"])[0:-5]
         )
         cursor = self.conn.cursor(dictionary=True)
         try:
             cursor.execute(request, tuple(values))
         except Exception as error:
-            """
-            _logger.error(request % tuple(values))
-            """
+
             _logger.exception(str(error))
             cursor.close()
             return False
@@ -286,7 +247,7 @@ class Database:
             _logger.debug("DELETE REQUEST OK.")
             cursor.close()
             return True
-    
+
     def delete(self, table, element):
         """Removes the element from the table, using the internal method.
 
@@ -298,6 +259,7 @@ class Database:
         result = self.__delete(table, conditions, [values])
         return result
 
+
 class DatabaseAdapter:
     """This class is used as an interface between the rest of the program structure and the structure of the Database.
 
@@ -308,7 +270,9 @@ class DatabaseAdapter:
         self._db = Database(_DB_HOSTNAME, _DB_USER, _DB_PASSWORD, _DB_DATABASE)
         self._db.initialize()
 
-    def _translate_to_resource(self, resource, variety_conditions=[]):
+    def _translate_to_resource(
+        self, resource, recursive=False, variety_conditions=[], load_content=False
+    ):
         """Translates an object from the database into a resource object.
 
         This method returns a Resource object.
@@ -321,15 +285,51 @@ class DatabaseAdapter:
                 conditions.append(cond)
                 values.append(val)
         except ValueError:
-            raise RuntimeError("Error: variety_conditins requires tuples of 2 values in every condition.")
+            raise RuntimeError(
+                "Error: variety_conditins requires tuples of 2 values in every condition."
+            )
 
-        row_list = self._db.select(["id", "name", "hash", "content"], ["Varieties",], ["resource_id ="].extend(conditions), [str(resource["id"])].extend(values), None)
         variety_list = []
-        for vrow in row_list:
-            # Make string representation of array
-            translated_hash = list(vrow["hash"][1:-2].split(" "))
-            variety_list.append(Resource.Variety(vrow["name"], content=vrow["content"], hash=translated_hash))
-        
+        if recursive:
+            row_list = []
+            conditions.extend(["resource_id ="])
+            values.extend(
+                [
+                    resource["id"],
+                ]
+            )
+            if not load_content:
+
+                row_list = self._db.select(
+                    ["id", "name", "hash"],
+                    [
+                        "Varieties",
+                    ],
+                    conditions,
+                    values,
+                    None,
+                )
+            else:
+                row_list = self._db.select(
+                    ["id", "name", "hash", "content"],
+                    [
+                        "Varieties",
+                    ],
+                    conditions,
+                    values,
+                    None,
+                )
+            for vrow in row_list:
+                # Make string representation of array
+                translated_hash = list(vrow["hash"][1:-2].split(" "))
+
+                variety = Resource.Variety(
+                    content=vrow["content"] if "content" in vrow else "NotLoaded",
+                    hash=translated_hash,
+                )
+                variety.set_name(vrow["name"])
+                variety_list.append(variety)
+
         result = Resource(resource["extension"], resource["webpage"])
         result.add_varieties(variety_list)
         result.set_id(resource["id"])
@@ -339,119 +339,124 @@ class DatabaseAdapter:
     def _translate_from_resource(self, resource):
         """Translates resource(s) object from the domain into database tuples.
 
-        This method returns a dictionary with the elements and the tables they belong to. 
+        This method returns a dictionary with the elements and the tables they belong to.
         """
 
         resource_row = {
-            'extension': resource.get_extension(),
-            'webpage': resource.get_webpage()
+            "extension": resource.get_extension(),
+            "webpage": resource.get_webpage(),
         }
         # If this resource has been creeated in domain, it will not have ID until the DB gives it to him
         an_id = resource.get_id()
         if not (an_id is None):
-            resource_row['id'] = an_id
+            resource_row["id"] = an_id
 
         variety_group = []
 
         for variety in resource.varieties:
             the_hash = variety.get_hash_string()
-            if len(the_hash.split('\n')) > 1:
+            if len(the_hash.split("\n")) > 1:
                 raise RuntimeError("Hash is too big! Cannot be stored in the DB")
-        
+
             variety_row = {
-                'resource_id': resource.get_id(),
-                'name': variety.get_name(),
-                'hash': the_hash,
-                'content': variety.get_content()
+                "resource_id": resource.get_id(),
+                "name": variety.get_name(),
+                "hash": the_hash,
+                "content": variety.get_content(),
             }
 
             an_id = variety.get_id()
             if not (an_id is None):
-                variety_row['id'] = an_id
+                variety_row["id"] = an_id
 
             variety_group.append(variety_row)
 
         return resource_row, variety_group
-    
-    def _translate_to_run(self, run, resource_conditions=[], variety_conditions=[]):
-        """Translates a row from the DB into a Run object from the domain.
-        """
 
-        conditions = []
-        values = []
-        try:
-            for cond, val in resource_conditions:
-                conditions.append(cond)
-                values.append(val)
-        except ValueError:
-            raise RuntimeError("Error: resource_conditins requires tuples of 2 values in every condition.")
-    
-        row_list = self._db.select(["id", "extension", "webpage"], ["Resources",], ["run_id ="].extend(conditions), [str(run["id"])].extend(values), None)
+    def _translate_to_run(
+        self, run, recursive=False, resource_conditions=[], variety_conditions=[]
+    ):
+        """Translates a row from the DB into a Run object from the domain."""
+
         list_of_resources = []
-        for rrow in row_list:
-            list_of_resources.append(self._translate_to_resource(rrow, vairety_conditions=variety_conditions))
+        if recursive:
+            conditions = [
+                ("run_id =", run["id"]),
+            ]
+            conditions.extend(resource_conditions)
+            list_of_resources = self.load_resources(
+                recursive=recursive,
+                resource_conditions=conditions,
+                variety_conditions=variety_conditions,
+            )
 
         result = Run(run["name"], data=list_of_resources)
         result.set_id(run["id"])
-        
+
         return result
 
     def _translate_from_run(self, run):
         """Translates  run(s) object from the domain into database tuples.
 
-        This method returns a dictionary with the elements and the tables they belong to. 
+        This method returns a dictionary with the elements and the tables they belong to.
         """
 
         row = {
-            'name': run.get_name(),
+            "name": run.get_name(),
         }
         # If this run has been creeated in domain, it will not have ID until the DB gives it to him
         an_id = run.get_id()
         if not (an_id is None):
-            row['id'] = an_id
+            row["id"] = an_id
 
         return row
 
     def _translate_from_collection(self, collection):
         """Translates  collection(s) object from the domain into database tuples.
 
-        This method returns a dictionary with the elements and the tables they belong to. 
+        This method returns a dictionary with the elements and the tables they belong to.
         """
 
         row = {
-            'name': collection.get_name(),
+            "name": collection.get_name(),
         }
         # If this run has been creeated in domain, it will not have ID until the DB gives it to him
         an_id = collection.get_id()
         if an_id:
-            row['id'] = an_id
+            row["id"] = an_id
 
         return row
 
-    def _translate_to_collection(self, collection, run_conditions=[], resource_conditions=[], variety_conditions=[]):
-        """Translates a row from the DB into a RunCollection object from the domain.
-        """
+    def _translate_to_collection(
+        self,
+        collection,
+        recursive=False,
+        run_conditions=[],
+        resource_conditions=[],
+        variety_conditions=[],
+    ):
+        """Translates a row from the DB into a RunCollection object from the domain."""
 
-        conditions = []
-        values = []
-        try:
-            for cond, val in run_conditions:
-                conditions.append(cond)
-                values.append(val)
-        except ValueError:
-            raise RuntimeError("Error: run_conditions requires tuples of 2 values in every condition.")
-
-        rows = self._db.select(["id", "name", "comparison_threshold", "collection_id"], ["Runs",], ["collection_id ="].extend(conditions), [str(collection["id"])].extend(values), None)
         run_list = []
-        for rrow in rows:
-                run_list.append(self._translate_to_run(rrow, resource_conditions=resource_conditions, variety_conditions=variety_conditions))
-        
+        if recursive:
+            run_conditions.extend(
+                [
+                    ("collection_id =", collection["id"]),
+                ]
+            )
+            run_list = self.load_runs(
+                recursive=recursive,
+                run_conditions=run_conditions,
+                resource_conditions=resource_conditions,
+                variety_conditions=variety_conditions,
+            )
+
         res = RunCollection(collection["name"], data=run_list)
         res.set_id(collection["id"])
-        
-        return res       
 
-    def _save_resource(self, resource, run_id = None):
+        return res
+
+    def _save_resource(self, resource, run_id=None):
         """Private method to update or insert resources in the DB.
 
         resources argument must be an iterable.
@@ -459,67 +464,153 @@ class DatabaseAdapter:
         _logger.debug("Save %r" % resource)
         a_resource, varieties = self._translate_from_resource(resource)
         a_resource["run_id"] = run_id
-        
-        row_id = self._db.insert('Resources', a_resource)
+
+        row_id = self._db.insert("Resources", a_resource)
 
         for variety in varieties:
             variety["resource_id"] = row_id
-            self._db.insert('Varieties', variety)
+            self._db.insert("Varieties", variety)
 
-    def _save_run(self, run, collection_id = None):
+    def _save_run(self, run, collection_id=None):
         _logger.debug("Save %r" % run)
         a_run = self._translate_from_run(run)
-        a_run['collection_id'] = collection_id
-        row_id = self._db.insert('Runs', a_run)
+        a_run["collection_id"] = collection_id
+        row_id = self._db.insert("Runs", a_run)
         for resource in run:
             self._save_resource(resource, run_id=row_id)
-    
+
     def _save_collection(self, collection):
         _logger.debug("Save %r" % collection)
         a_coll = self._translate_from_collection(collection)
-        
-        row_id = self._db.insert('RunCollections', a_coll)
+
+        row_id = self._db.insert("RunCollections", a_coll)
         for run in collection:
             self._save_run(run, collection_id=row_id)
 
-    def save(self, obj):
-        """Tries to update or insert an object into the DB.
-        """
+    def save(self, obj, parent_id=None):
+        """Tries to update or insert an object into the DB."""
         if isinstance(obj, Resource):
-            self._save_resource(obj)
+            self._save_resource(obj, run_id=parent_id)
         elif isinstance(obj, Run):
-            self._save_run(obj)
+            self._save_run(obj, collection_id=parent_id)
         elif isinstance(obj, RunCollection):
             self._save_collection(obj)
 
     def save_all(self, obj_list):
-        """Tries to update or insert the objects provided.
-        """
+        """Tries to update or insert the objects provided."""
 
         for obj in obj_list:
             self.save(obj)
-    
-    def load_collections(self, recursive=False, collection_conditions=[], run_conditions=[], resource_conditions=[], variety_conditions=[]):
+
+    def load_resources(
+        self,
+        recursive=False,
+        resource_conditions=[],
+        variety_conditions=[],
+        load_content=False,
+    ):
+        conditions = []
+        values = []
+        try:
+            for cond, val in resource_conditions:
+                conditions.append(cond)
+                values.append(val)
+        except ValueError:
+            raise RuntimeError(
+                "Error: resource_conditins requires tuples of 2 values in every condition."
+            )
+
+        row_list = self._db.select(
+            ["id", "extension", "webpage"],
+            [
+                "Resources",
+            ],
+            conditions,
+            values,
+            None,
+        )
+
+        resource_list = []
+        for row in row_list:
+            resource_list.append(
+                self._translate_to_resource(
+                    row,
+                    recursive=True,
+                    variety_conditions=variety_conditions,
+                    load_content=load_content,
+                )
+            )
+
+        return resource_list
+
+    def load_runs(
+        self,
+        recursive=False,
+        run_conditions=[],
+        resource_conditions=[],
+        variety_conditions=[],
+    ):
+        conditions = []
+        values = []
+        try:
+            for cond, val in run_conditions:
+                conditions.append(cond)
+                values.append(val)
+        except ValueError:
+            raise RuntimeError(
+                "Error: run_conditions requires tuples of 2 values in every condition."
+            )
+
+        rows = self._db.select(
+            ["id", "name", "collection_id"],
+            [
+                "Runs",
+            ],
+            conditions,
+            values,
+            None,
+        )
+        run_list = []
+        for rrow in rows:
+            run_list.append(
+                self._translate_to_run(
+                    rrow,
+                    recursive=recursive,
+                    resource_conditions=resource_conditions,
+                    variety_conditions=variety_conditions,
+                )
+            )
+
+        return run_list
+
+    def load_collections(
+        self,
+        recursive=False,
+        collection_conditions=[],
+        run_conditions=[],
+        resource_conditions=[],
+        variety_conditions=[],
+    ):
         """Loads RunCollections from the DB.
 
         If recursive is True, loads also all the objects inside.
 
-        Parameters collection_conditions, run_conditions, resource_conditions and variety_conditions 
+        Parameters collection_conditions, run_conditions, resource_conditions and variety_conditions
         must be lists of tuples of 2 elements. These specify conditions that the object loaded must fullfil.
-        
+
         Example 1:
 
             - collection_condition=[("name =", "no_vpn")]
 
             This will only load collections that have the name "no_vpn".
-        
+
         Example 2:
 
             - collection_condition=[("name =", "no_vpn"),]
             - run_condition=[("name >", "1")]
             - resource_condition=[("webpage =", "buydomains-com")]
 
-            This will only load collections that have the name "no_vpn", that contain runs with 
+            This will only load collections that have the name "no_vpn", that contain runs with
             a name greater than "1" and with resources that belong to the webpage "buydomains-com".
 
             :returns: [RunCollection(),...]
@@ -531,21 +622,34 @@ class DatabaseAdapter:
                 conditions.append(cond)
                 values.append(val)
         except ValueError:
-            raise RuntimeError("Error: collection_conditins requires tuples of 2 values in every condition.")
+            raise RuntimeError(
+                "Error: collection_conditins requires tuples of 2 values in every condition."
+            )
 
-        total_rows = []
-        if not (names is None):
-            for name in names:
-                col_rows = self._db.select(["id", "name"], ["RunCollections",], conditions, values, ["name"])
-                total_rows.extend(col_rows)
+        total_rows = self._db.select(
+            ["id", "name"],
+            [
+                "RunCollections",
+            ],
+            conditions,
+            values,
+            ["name"],
+        )
 
         result = []
         for crow in total_rows:
-            result.append(self._translate_to_collection(crow, run_conditions=run_conditions, resource_conditions=resource_conditions, variety_conditions=variety_conditions))
+            result.append(
+                self._translate_to_collection(
+                    crow,
+                    recursive=recursive,
+                    run_conditions=run_conditions,
+                    resource_conditions=resource_conditions,
+                    variety_conditions=variety_conditions,
+                )
+            )
 
         return result
 
-        
-                
+
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.DEBUG)

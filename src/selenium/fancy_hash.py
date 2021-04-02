@@ -10,31 +10,36 @@ NUM_PERM = 230
 # 0 is whole line
 JACC_GRANULARITY = 0
 
+
 def _usage():
     print("\tusage: {file} [-h|d <directory>]".format(file=__file__))
     sys.exit(2)
 
+
 def _create_set(filename, granularity=JACC_GRANULARITY):
-    """Creates a set for to use in a MinHash from the given filename. 
-    Splits the file in groups of characters according to the given 
-    granularity (0 means each group represents a line of the file). 
+    """Creates a set for to use in a MinHash from the given filename.
+    Splits the file in groups of characters according to the given
+    granularity (0 means each group represents a line of the file).
     """
 
     res = []
-    
-    with open(filename, 'rb') as fd:
+
+    with open(filename, "rb") as fd:
         if granularity == 0:
             res = fd.readlines()
         else:
             aux = fd.read()
             # Appends items to the res list using the given granularity
-            [res.append(aux[i:i+granularity-1]) for i in range(0, len(aux), granularity)]
-    
+            [
+                res.append(aux[i : i + granularity - 1])
+                for i in range(0, len(aux), granularity)
+            ]
+
     return set(res)
 
+
 def _create_minhash(a_set, perms=NUM_PERM):
-    """Returns a minhash of the given set using the permutation number given.
-    """
+    """Returns a minhash of the given set using the permutation number given."""
 
     a_minhash = MinHash(num_perm=perms)
 
@@ -42,13 +47,13 @@ def _create_minhash(a_set, perms=NUM_PERM):
         a_minhash.update(group)
 
     # print(a_minhash.digest())
-    
+
     return a_minhash
 
+
 def _compare_single(minhash_dic):
-    """Returns a dictionary (filename, similarity), with the jaccard similarity of the Minhashes with the rest of the neighbours.
-    """
-    
+    """Returns a dictionary (filename, similarity), with the jaccard similarity of the Minhashes with the rest of the neighbours."""
+
     res = {}
     for target in minhash_dic:
         aux = minhash_dic.copy()
@@ -60,14 +65,13 @@ def _compare_single(minhash_dic):
             counter = counter + 1
         avg = avg / counter
         res[target] = avg
-    
+
     return res
-    
+
 
 def _compare_merged(minhash_dic):
-    """Returns a the jaccard similarity of the minhashes.
-    """
-    
+    """Returns a the jaccard similarity of the minhashes."""
+
     jaccards = _compare_single(minhash_dic)
     avg = 0
     for x in jaccards:
@@ -79,9 +83,9 @@ def _compare_merged(minhash_dic):
 
     return ret
 
+
 def calc_proximity_of_dir(a_dir=INPUT_DIR):
-    """Calculate proximit between files, assuming all the files are in a_dir.
-    """
+    """Calculate proximit between files, assuming all the files are in a_dir."""
 
     res = None
     if os.path.isdir(a_dir):
@@ -91,7 +95,8 @@ def calc_proximity_of_dir(a_dir=INPUT_DIR):
             mh = _create_minhash(a_set)
             minhash_dic[filename] = mh
         res = _compare_single(minhash_dic)
-    return  (_compare_merged(minhash_dic), res)
+    return (_compare_merged(minhash_dic), res)
+
 
 def _get_all_mh(a_dir):
     files = {}
@@ -123,6 +128,7 @@ def _get_all_mh(a_dir):
                         files[root][f] = _create_minhash(a_set)
     return files
 
+
 def calc_proximity_two(a_dir=INPUT_DIR):
     minhashes_all = _get_all_mh(a_dir)
     result = {}
@@ -132,10 +138,13 @@ def calc_proximity_two(a_dir=INPUT_DIR):
         result[root] = {}
         for mh in minhashes_all[root]:
             try:
-                result[root][mh] = minhashes_all[root][mh].jaccard(minhashes_all["no_vpn"][mh])
+                result[root][mh] = minhashes_all[root][mh].jaccard(
+                    minhashes_all["no_vpn"][mh]
+                )
             except KeyError:
                 continue
     return result
+
 
 def create_tree(a_dir=INPUT_DIR, created=[]):
     """Recursively loads all files in thee hierarchy as MH."""
@@ -153,7 +162,7 @@ def create_tree(a_dir=INPUT_DIR, created=[]):
     return result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     short_opts = "hd:"
     long_opts = ["help", "directory="]
 
@@ -162,23 +171,17 @@ if __name__ == '__main__':
     except Exception:
         print("Couldn't get options!")
         _usage()
-    
+
     for opt, val in opts:
-        if opt in ('-h', '--help') :
+        if opt in ("-h", "--help"):
             _usage()
-        elif opt in ('-d', '--directory'):
+        elif opt in ("-d", "--directory"):
             try:
-                INPUT_DIR = str(Path(val).absolute())            
+                INPUT_DIR = str(Path(val).absolute())
             except:
                 _usage()
-                
+
     print("Analysis 01")
     print(calc_proximity_one())
     print("Analysis 02")
     print(calc_proximity_two())
-    
-    
-
-            
-
-    

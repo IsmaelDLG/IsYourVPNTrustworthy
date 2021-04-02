@@ -25,9 +25,11 @@ I asume the directory hierarchy follows this structure.
 This script copies the same files from different runs in a single dir so that the process_crawl_results script works.
 """
 
+
 def _usage():
     print("\tusage: {file} [-h|d <directory>]".format(file=__file__))
     sys.exit(2)
+
 
 def sort(input_dir=INPUT_DIR):
     files = {}
@@ -45,22 +47,30 @@ def sort(input_dir=INPUT_DIR):
             if not os.path.isdir(run):
                 continue
             for f in os.listdir(run):
-                fname = f.split('.')[0]
+                fname = f.split(".")[0]
                 if fname.startswith("file-"):
                     continue
                 a_file = run + os.path.sep + f
                 dirname = case + os.path.sep + "file-" + fname
                 if fname in files[root]:
-                    print("copying file %s to %s" % (a_file, dirname + os.path.sep + 'file-' + str(count)))
-                    copyfile(a_file, dirname + os.path.sep + 'file-' + str(count) + '.txt')
+                    print(
+                        "copying file %s to %s"
+                        % (a_file, dirname + os.path.sep + "file-" + str(count))
+                    )
+                    copyfile(
+                        a_file, dirname + os.path.sep + "file-" + str(count) + ".txt"
+                    )
                 else:
                     if not os.path.exists(dirname):
                         os.mkdir(dirname)
-                    files[root][fname] = dirname + os.path.sep + 'file-' + str(count) + '.txt'
+                    files[root][fname] = (
+                        dirname + os.path.sep + "file-" + str(count) + ".txt"
+                    )
             count = count + 1
         print("Finished case %s." % root)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     short_opts = "hd:"
     long_opts = ["help", "directory="]
 
@@ -69,13 +79,13 @@ if __name__ == '__main__':
     except Exception:
         print("Couldn't get options!")
         _usage()
-    
+
     for opt, val in opts:
-        if opt in ('-h', '--help') :
+        if opt in ("-h", "--help"):
             _usage()
-        elif opt in ('-d', '--directory'):
+        elif opt in ("-d", "--directory"):
             try:
-                INPUT_DIR = str(Path(val).absolute())            
+                INPUT_DIR = str(Path(val).absolute())
             except:
                 _usage()
 

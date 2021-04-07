@@ -15,4 +15,4 @@ _LOG_FORMAT = "%(asctime)s|%(threadName)s|%(name)s|%(levelname)s|%(message)s"
 # _LOG_LEVEL = INFO
 _LOG_LEVEL = DEBUG
 
-_RESULTS_DIRECTORY = "C:\\Users\\ismae\\Desktop\\"
+_RESULTS_DIRECTORY = "C:\\Users\\ismae\\Desktop\\Results\\"

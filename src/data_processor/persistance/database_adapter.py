@@ -33,7 +33,7 @@ class Database:
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS RunCollections (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(14)
+                name VARCHAR(14) UNIQUE
             );"""
         )
 
@@ -41,7 +41,7 @@ class Database:
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS Runs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(14),
+                name VARCHAR(14) UNIQUE,
                 comparison_threshold DECIMAL,
                 collection_id INT REFERENCES RunCollections(id)
             );"""
@@ -105,7 +105,7 @@ class Database:
         )
         cursor = self.conn.cursor(dictionary=True)
         results = []
-        _logger.debug("%r, %r" % (request, values))
+        # _logger.debug("%r, %r" % (request, values))
         try:
             if values:
                 cursor.execute(request, tuple(values))
@@ -121,9 +121,16 @@ class Database:
                     if row[key] == "NULL":
                         result[key] = None
                 results.append(result)
+
+            aux_results = results
+            if "Varieties" in tables:
+                for row in aux_results:
+                    aux_results[row].pop("hash", None)
+                    aux_results[row].pop("content", None)
+                        
             _logger.debug(
                 "SELECT REQUEST ON {0} OK. Results: {1}".format(
-                    ", ".join(tables), results
+                    ", ".join(tables), aux_results
                 )
             )
         cursor.close()
@@ -244,7 +251,7 @@ class Database:
             return False
         else:
             self.conn.commit()
-            _logger.debug("DELETE REQUEST OK.")
+            _logger.debug("DELETE REQUEST ON {0} OK.".format(table))
             cursor.close()
             return True
 
@@ -328,6 +335,7 @@ class DatabaseAdapter:
                     hash=translated_hash,
                 )
                 variety.set_name(vrow["name"])
+                variety.set_id(vrow["id"])
                 variety_list.append(variety)
 
         result = Resource(resource["extension"], resource["webpage"])
@@ -392,6 +400,7 @@ class DatabaseAdapter:
 
         result = Run(run["name"], data=list_of_resources)
         result.set_id(run["id"])
+        result.set_threshold(run["comparison_threshold"])
 
         return result
 
@@ -403,6 +412,7 @@ class DatabaseAdapter:
 
         row = {
             "name": run.get_name(),
+            "comparison_threshold": run.get_threshold(),
         }
         # If this run has been creeated in domain, it will not have ID until the DB gives it to him
         an_id = run.get_id()
@@ -562,7 +572,7 @@ class DatabaseAdapter:
             )
 
         rows = self._db.select(
-            ["id", "name", "collection_id"],
+            ["id", "name", "collection_id", "comparison_threshold"],
             [
                 "Runs",
             ],
@@ -615,6 +625,7 @@ class DatabaseAdapter:
 
             :returns: [RunCollection(),...]
         """
+
         conditions = []
         values = []
         try:
@@ -649,6 +660,84 @@ class DatabaseAdapter:
             )
 
         return result
+
+    def find_matching_resource(self, a_resource, run_id=None):
+        res_conditions = [
+            ("extension =", a_resource.get_extension()),
+            ("webpage =", a_resource.get_webpage()),
+        ]
+
+        the_id = a_resource.get_id()
+
+        if not (the_id is None):
+            res_conditions.append(("id =", the_id))
+
+        if not (run_id is None):
+            res_conditions.append(("run_id =", run_id))
+
+        stored_resources = self.load_resources(
+            recursive=True, resource_conditions=res_conditions
+        )
+        _logger.debug(stored_resources)
+        if len(stored_resources) > 0:
+            result = []
+            for db_res in stored_resources:
+                if a_resource == db_res:
+                    result.append(db_res)
+                else:
+                    _logger.debug("%s not equal to %s" % (a_resource, db_res))
+            return result if len(result) > 0 else None
+        else:
+            return None
+
+    def find_matching_run(self, a_run, col_id=None):
+        conditions = [
+            ("name =", a_run.get_name()),
+        ]
+
+        the_id = a_run.get_id()
+
+        if not (the_id is None):
+            conditions.append(("id =", the_id))
+
+        if not (col_id is None):
+            conditions.append(("collection_id =", col_id))
+
+        stored_runs = self.load_runs(
+            recursive=False,
+            run_conditions=conditions,
+        )
+
+        if len(stored_runs) > 0:
+            return stored_runs
+        else:
+            return None
+
+    def find_matching_collection(self, a_coll):
+        """Returns a list of matching collections. Else, returns None."""
+        conditions = [
+            ("name =", a_coll.get_name()),
+        ]
+        the_id = a_coll.get_id()
+
+        if not (the_id is None):
+            conditions.append(("id =", the_id))
+
+        stored_collection = self.load_collections(
+            recursive=False, collection_conditions=conditions
+        )
+
+        # name unique, so length is always 1
+        if len(stored_collection) > 0:
+            return stored_collection[0]
+        else:
+            return None
+
+    def find_matching(self, target):
+        """Finds matching object(s) in databse if exists, and returns a list with them. Else, returns none."""
+
+        if isinstance(target, RunCollection):
+            self.find_matching_collection(target)
 
 
 _logger = logging.getLogger(__name__)

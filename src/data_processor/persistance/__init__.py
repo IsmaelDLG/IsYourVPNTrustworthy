@@ -60,7 +60,7 @@ class Resource:
                 else:
                     raise RuntimeError(
                         "File %s provided to create variety of resource is invalid!"
-                        % file
+                        % filepath
                     )
 
         def get_hash_string(self):
@@ -111,6 +111,16 @@ class Resource:
 
         def __sizeof___(self):
             return getsizeof(self.content) + getsizeof(self.hash) + getsizeof(self.name)
+
+        def print(self):
+            res = {
+                "id": self.get_id(),
+                "name": self.get_name(),
+                # "hash": self.get_hash_string(),
+                # "content": self.get_content(),
+            }
+
+            return res
 
     def __init__(self, extension, webpage, file=None, a_hash=None):
         """Initializes Resource object with all its fields."""
@@ -173,6 +183,29 @@ class Resource:
 
         return max_sim
 
+    def join(self, other):
+        for target in other.varieties:
+            max_sim = 0
+            for case in self.varieties:
+                sim = case.hash.jaccard(target.hash)
+
+                if sim > max_sim:
+                    max_sim = sim
+
+            if max_sim > Run._COMPARISON_THRESHOLD and max_sim < 0.99:
+                # It's not the same!
+                self.varieties.append(target)
+
+    def __eq__(self, obj):
+
+        similarity = self.compare(obj)
+        _logger.debug("Similarity is: %f" % similarity)
+        return (
+            similarity >= Run._COMPARISON_THRESHOLD
+            and self.extension == obj.extension
+            and self.webpage == obj.webpage
+        )
+
     def get_varieties(self):
         """getter for _varieties private attribute."""
 
@@ -190,10 +223,24 @@ class Resource:
 
         return suma
 
+    def print(self):
+
+        res = {
+            "id": self.get_id(),
+            "extension": self.get_extension(),
+            "webpage": self.get_webpage(),
+            "_varieties": [],
+        }
+
+        for variety in self.varieties:
+            res["_varieties"].append(variety.print())
+
+        return res
+
 
 class Run(list):
 
-    _COMPARISON_TRESHOLD = 0.80
+    _COMPARISON_THRESHOLD = 0.80
     _id = None
 
     def __init__(self, name, data=None):
@@ -227,6 +274,16 @@ class Run(list):
         """Setter for _name private property."""
 
         self._name = new_name
+    
+    def get_threshold(self):
+        """Getter for _COMPARISON_THRESHOLD private property."""
+
+        return self._COMPARISON_THRESHOLD
+
+    def set_threshold(self, threshold):
+        """Setter for _COMPARISON_THRESHOLD private property."""
+        if not (threshold is None):
+            self._COMPARISON_THRESHOLD = threshold 
 
     def __repr__(self):
         return "{0} <id: {1}, name: {2}>".format(
@@ -267,21 +324,19 @@ class Run(list):
 
     def __contains__(self, val: Resource):
         max_sim = 0
-        for case in self._list:
-            sim = case.compare(val)
-            if max_sim < sim:
-                max_sim = sim
+        
+        index = self.find_similar(val)
+
+        if not (index is None):
             if (
-                max_sim >= self._COMPARISON_TRESHOLD
-                and case.extension == val.extension
-                and case.webpage == val.webpage
+                and self._list[index].extension == val.extension
+                and self._list[index].webpage == val.webpage
             ):
-                break
-        return (
-            max_sim >= self._COMPARISON_TRESHOLD
-            and case.extension == val.extension
-            and case.webpage == val.webpage
-        )
+                return True
+        
+        return False
+
+        
 
     def find_similar(self, other: Resource):
         """Finds the resource in the collection that is most similar to the other adn returns it's index. If similarity treshold is not reached, returns None."""
@@ -291,7 +346,7 @@ class Run(list):
         index = 0
         for case in self._list:
             sim = case.compare(other)
-            if max_sim < sim and sim >= self._COMPARISON_TRESHOLD:
+            if max_sim < sim and sim >= self._COMPARISON_THRESHOLD:
                 max_sim = sim
                 ret = index
             index += 1
@@ -300,8 +355,9 @@ class Run(list):
 
     def intersection(self, other):
         """Makes the intersection of the given run and self, and returns a Run object with the common resources in both Runs."""
-        result = Run()
-
+        
+        _logger.debug("Intersection of %s and %s" % (self, other))
+        result = Run("Intersection_of_runs")
         for resource in self._list:
             index = other.find_similar(resource)
             if not (index is None):
@@ -342,13 +398,15 @@ class Run(list):
                         % (self._list[index], res, similarity)
                     )
                     # Si similarity es 1, son el mateix i no hem de fer res
-                    if similarity >= self._COMPARISON_TRESHOLD and similarity < 0.99:
+                    if similarity >= self._COMPARISON_THRESHOLD and similarity < 0.99:
                         _logger.debug(
                             "Joining resources %r and %r" % (self._list[index], res)
                         )
                         self._list[index].add_varieties(res.get_varieties())
                     elif similarity >= 0.99:
-                        _logger.debug("Coincidence found in %r and %r" % (self._list[index], res))
+                        _logger.debug(
+                            "Coincidence found in %r and %r" % (self._list[index], res)
+                        )
                 else:
                     self.append(res)
                     _logger.debug(
@@ -366,6 +424,19 @@ class Run(list):
             suma += getsizeof(x)
 
         return suma
+
+    def print(self):
+        res = {
+            "id": self.get_id(),
+            "name": self.get_name(),
+            "comparison_threshold": self._COMPARISON_THRESHOLD,
+            "_resources": [],
+        }
+
+        for resource in self._list:
+            res["_resources"].append(resource.print())
+
+        return res
 
 
 class RunCollection(list):
@@ -465,14 +536,16 @@ class RunCollection(list):
 
     def constant_resources(self):
         # Intersection of all sets
-        data = copy(self._list)
 
-        # More efficient for we use last intersection to calc next. Smaller sets.
-        res = data.next()
-        for run in data:
-            res = res.intersection(run)
+        if not (self._list is None):
+            # More efficient for we use last intersection to calc next. Smaller sets.
+            res = self._list.next()
+            for run in self._list:
+                res = res.intersection(run)
 
-        return aux
+            return res
+        else:
+            return None
 
     def max_resources_per_run(self):
         ret = None
@@ -535,6 +608,23 @@ class RunCollection(list):
             suma += getsizeof(x)
 
         return suma
+
+    def print(self):
+        """Returns a dictionary representing the object.
+
+        This method is useful to print data to files using json module.
+        """
+
+        res = {
+            "id": self.get_id(),
+            "name": self.get_name(),
+            "_runs": [],
+        }
+
+        for run in self._list:
+            res["_runs"].append(run.print())
+
+        return res
 
 
 _logger = logging.getLogger(__name__)

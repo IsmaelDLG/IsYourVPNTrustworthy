@@ -5,12 +5,15 @@ from os import listdir, path, remove, sep
 import time
 import random
 from gc import collect as gc_collect
+from json import dump as jdump
 
 from numpy import array2string
 
-from config import _LOG_FILE, _LOG_FORMAT, _LOG_LEVEL, _LOAD_DATA, _DATA_DIRECTORY
+from config import _LOG_FILE, _LOG_FORMAT, _LOG_LEVEL, _LOAD_DATA, _DATA_DIRECTORY, _RESULTS_DIRECTORY
 from persistance.database_adapter import DatabaseAdapter
 from persistance import Resource, Run, RunCollection
+import data_processor
+
 
 
 def _usage():
@@ -29,7 +32,7 @@ def _center(string: str, n: int) -> str:
     return " " * left_spaces + string + " " * right_spaces
 
 
-def ResourceCollectionGenerator(root_directory):
+def resource_collection_generator(root_directory):
     for ext in listdir(root_directory):
         ext_dir = root_directory + path.sep + ext
         if path.isdir(ext_dir):
@@ -79,6 +82,50 @@ def ResourceCollectionGenerator(root_directory):
             remove(ext_dir)
 
 
+def load_files_in_database(db):
+    _logger.debug("Loading files...")
+    collections = resource_collection_generator(str(_DATA_DIRECTORY))
+    for col in collections:
+        _logger.debug("Finding a match for: %r" % col)
+        db_col = db.find_matching_collection(col)
+
+        if not (db_col is None):
+            for run in col:
+                db_run = db.find_matching_run(run, col_id=db_col.get_id())
+                if not (db_run is None):
+                    db_run = db_run[0]
+                    for resource in run:
+                        db_resource = db.find_matching_resource(
+                            resource, run_id=db_run.get_id()
+                        )
+                        if not (db_resource is None):
+                            index = 0
+                            max_sim = 0
+                            best_one = None
+                            while index < len(db_resource):
+                                sim = db_resource[index].compare(resource)
+                                if sim >= max_sim:
+                                    max_sim = sim
+                                    best_one = db_resource[index]
+                                index += 1
+
+                            # Found best match.
+                            best_one.join(resource)
+                            db.save(best_one)
+                            _logger.debug("Joining resources")
+                        else:
+                            db.save(resource)
+                            _logger.debug("Saving new resource")
+                else:
+                    db.save(run)
+                    _logger.debug("Saving new run")
+        else:
+            _logger.debug("Match not found for: %r. Saving." % col)
+            db.save(col)
+
+        gc_collect()
+
+
 if __name__ == "__main__":
     file_handler = logging.FileHandler(_LOG_FILE, mode="a")
     file_handler.setLevel(logging.DEBUG)
@@ -123,71 +170,36 @@ if __name__ == "__main__":
     db = DatabaseAdapter()
 
     if _LOAD_DATA:
-        _logger.debug("Loading files...")
-        collections = ResourceCollectionGenerator(str(_DATA_DIRECTORY))
-        try:
-            for col in collections:
-                col_joined = False
-                stored_collections = db.load_collections(
-                    recursive=False,
-                    collection_conditions=[
-                        ("name =", col.get_name()),
-                    ],
-                )
-                for st_col in stored_collections:
-                    _logger.debug("Attempt to join %r and %r" % (st_col, col))
-                    if st_col.can_join(col):
-                        _logger.debug(
-                            "%r and %r can join. Trying to find matching runs"
-                            % (st_col, col)
-                        )
-                        for run in col:
-                            run_joined = False
-                            stored_runs = db.load_runs(
-                                recursive=False,
-                                run_conditions=[
-                                    ("name =", run.get_name()),
-                                    ("collection_id =", st_col.get_id()),
-                                ],
-                            )
-                            _logger.debug("Candidates are: %r" % stored_runs)
-                            for st_run in stored_runs:
-                                if st_run.can_join(run):
-                                    _logger.debug(
-                                        "Runs %r and %r can join. Merging runs!"
-                                        % (st_run, run)
-                                    )
-                                    # Load one unique run using primary key
-                                    to_merge = db.load_runs(
-                                        recursive=True,
-                                        run_conditions=[
-                                            ("id =", st_run.get_id()),
-                                            ("collection_id =", st_col.get_id()),
-                                        ],
-                                    )[0]
+        load_files_in_database(db)
 
-                                    to_merge.join(run)
-                                    db.save(to_merge, parent_id=st_col.get_id())
-                                    run_joined = True
-                                    _logger.debug("Joined %r and %r!" % (to_merge, run))
-                                    break
+    dp = data_processor.DataProcessor(db)
 
-                            if not run_joined:
-                                _logger.debug(
-                                    "Could not join with any run! Saving %r." % run
-                                )
-                                db.save(run, parent_id=st_col.get_id())
-                        col_joined = True
-                        _logger.debug("Joined %r and %r!" % (st_col, col))
-                        break
-                    else:
-                        _logger.debug("Can not join!")
+    col_list = db.load_collections(recursive=False, collection_conditions=[("name !=", "no_vpn")])
+    intersection_list = []
+    # Try to find files common in all VPN runs, that are specific files. We can later compare these 
+    # to the files common in all vpns to find which are only used by a specific VPN.
 
-                if not col_joined:
-                    db.save(col)
-                    _logger.debug("%r Unique, adding to database." % col)
+    for col in col_list:
+        _logger.debug("Finding common files in collection {0}".format(col.get_name()))
+        result = dp.get_static_files_in_collection(col.get_name())
+        intersection_list.append(result)
+        with open("{0}{1}.json".format(_RESULTS_DIRECTORY, col.get_name()), 'w') as f:
+            jdump(result.print(), f)
+        _logger.debug("Finished")
 
-                gc_collect()
+    # Try to find files common in all VPN, that are VPN-related files
+    _logger.debug("Finding common in all collections".format(col.get_name()))
+    common = RunCollection("VPNCommonFiles", data=intersection_list)
+    result = common.constant_resources()
+    with open("{0}{1}.json".format(_RESULTS_DIRECTORY, common.get_name()), 'w') as f:
+            jdump(result.print(), f)
+    _logger.debug("Finished")
 
-        except MemoryError as e:
-            _logger.exception(str(e))
+    try:
+        debug = dp.get_static_files_in_collection("no_vpn")
+    except RuntimeError:
+        _logger.error("Collection no_vpn does not exists in  the database.")
+    else:
+        with open("{0}{1}.json".format(_RESULTS_DIRECTORY, "StaticFilesInNoVPN"), 'w') as f:
+            jdump(debug.print(), f)
+    

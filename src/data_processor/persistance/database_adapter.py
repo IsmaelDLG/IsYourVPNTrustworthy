@@ -5,11 +5,23 @@ from mysql import connector
 from numpy import array, array2string
 from numpy import uint64
 
-from config import _DB_DATABASE, _DB_HOSTNAME, _DB_PASSWORD, _DB_USER
+from copy import deepcopy as copy
+
+from config import (
+    _DB_DATABASE,
+    _DB_HOSTNAME,
+    _DB_PASSWORD,
+    _DB_USER,
+    _VARIETIES_SIZE,
+    _LOG_LEVEL,
+)
 from persistance import Resource, Run, RunCollection
 
 
 class Database:
+
+    variety_tables = list()
+
     def __init__(self, host, user, password, db_name):
         self.host = host
         self.user = user
@@ -17,6 +29,9 @@ class Database:
         self.db = db_name
         self.conn = connector.connect(
             host=host, user=user, passwd=password, db="vpntfg0"
+        )
+        _logger.info(
+            "Thread safety provided by connector is %i" % connector.threadsafety
         )
 
     def close(self):
@@ -42,9 +57,9 @@ class Database:
             """CREATE TABLE IF NOT EXISTS Runs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(14) UNIQUE,
-                comparison_threshold DECIMAL,
-                collection_id INT REFERENCES RunCollections(id)
-            );"""
+                comparison_threshold DECIMAL(3,3),
+                collection_id INT NOT NULL,
+                FOREIGN KEY (collection_id) REFERENCES RunCollections (id) ON DELETE CASCADE);"""
         )
 
         # This table holds resources, which can be in multiple runs and have multiple varieties
@@ -53,25 +68,73 @@ class Database:
                 id INT AUTO_INCREMENT PRIMARY KEY, 
                 extension VARCHAR(20), 
                 webpage VARCHAR(30),
-                run_id INT REFERENCES Runs(id)
-            );"""
+                run_id INT NOT NULL,
+                FOREIGN KEY (run_id) REFERENCES Runs (id) ON DELETE CASCADE);"""
         )
 
-        # This table holds the different files found.
+        # # This table holds the different files found.
+        # cursor.execute(
+        #     """CREATE TABLE IF NOT EXISTS Varieties (
+        #         id INT AUTO_INCREMENT PRIMARY KEY,
+        #         resource_id INT NOT NULL,
+        #         name VARCHAR(40),
+        #         hash VARCHAR(10000),
+        #         content MEDIUMBLOB,
+        #         FOREIGN KEY (resource_id) REFERENCES Resources (id) ON DELETE CASCADE);"""
+        # )
+
+        # 'SELECT Table_name FROM information_schema.tables WHERE table_schema = "vpntfg0" AND Table_name LIKE "%Varieties%";'
         cursor.execute(
-            """CREATE TABLE IF NOT EXISTS Varieties (
-                id INT AUTO_INCREMENT PRIMARY KEY, 
-                resource_id INT NOT NULL REFERENCES Resources(id), 
-                name VARCHAR(40), 
-                hash VARCHAR(10000), 
-                content MEDIUMBLOB
-            );"""
+            'SELECT Table_name FROM information_schema.tables WHERE table_schema = "vpntfg0" AND Table_name LIKE "%Varieties_%" ORDER BY Table_name'
         )
+        for row in cursor.fetchall():
+            self.variety_tables.append(row[0])
 
-        _logger.debug("Database initialized")
+        cursor.close()
+        _logger.info("Variety tables are: %s" % self.variety_tables)
+
+        _logger.info("Database initialized")
+
+    def _match_variety_table(self, an_id):
+        """Finds the corresponding variety table for the given number.
+
+        Returns the index that indicates the position in the property variety_tables to use as table name.
+        """
+
+        i = 1
+        found = False
+        while not found:
+            if i * _VARIETIES_SIZE > an_id:
+                found = True
+            else:
+                i += 1
+
+        return i - 1
 
     def __select(self, fields, tables, conditions, values, order):
         """Internal select function."""
+
+        start_table = 0
+        end_table = -1
+        for i in range(0, len(tables)):
+            if tables[i] == "Varieties":
+                tables.pop(i)
+                for j in range(0, len(conditions)):
+                    if conditions[j].startswith("resource_id"):
+                        index = self._match_variety_table(values[j])
+                        if conditions[j].endswith(" ="):
+                            start_table = index
+                            end_table = index + 1
+                        elif conditions[j].endswith(" <") or conditions[j].endswith(
+                            " <="
+                        ):
+                            end_table = index + 1
+                        elif conditions[j].endswith(" >") or conditions[j].endswith(
+                            " >="
+                        ):
+                            start_table = index
+
+                tables.extend(self.variety_tables[start_table:end_table])
 
         request = "SELECT {fields} FROM {tables}{conditions}{order}"
 
@@ -103,6 +166,7 @@ class Database:
             conditions=cond_list,
             order=ord_list,
         )
+
         cursor = self.conn.cursor(dictionary=True)
         results = []
         # _logger.debug("%r, %r" % (request, values))
@@ -122,12 +186,11 @@ class Database:
                         result[key] = None
                 results.append(result)
 
-            aux_results = results
-            if "Varieties" in tables:
-                for row in aux_results:
-                    aux_results[row].pop("hash", None)
-                    aux_results[row].pop("content", None)
-                        
+            aux_results = copy(results)
+            for i in range(0, len(aux_results)):
+                aux_results[i].pop("hash", None)
+                aux_results[i].pop("content", None)
+
             _logger.debug(
                 "SELECT REQUEST ON {0} OK. Results: {1}".format(
                     ", ".join(tables), aux_results
@@ -149,23 +212,53 @@ class Database:
             _logger.warning("Incorrect number of fields/conditions/values")
             return False
 
-        request = "UPDATE {table} SET {fields} WHERE {conditions}"
-        request = request.format(
-            table=table,
-            fields=" = %s,".join(fields + ["0"])[0:-2],
-            conditions=" %s".join(conditions + ["0"])[:-1],
-        )
+        tables = [
+            table,
+        ]
+        if table == "Varieties":
+            start_table = 0
+            end_table = -1
+            for i in range(0, len(tables)):
+                if tables[i] == "Varieties":
+                    tables.pop(i)
+                    for j in range(0, len(conditions)):
+                        if conditions[j].startswith("resource_id"):
+                            index = self._match_variety_table(values[j])
+                            if conditions[j].endswith(" ="):
+                                start_table = index
+                                end_table = index + 1
+                            elif conditions[j].endswith(" <") or conditions[j].endswith(
+                                " <="
+                            ):
+                                end_table = index + 1
+                            elif conditions[j].endswith(" >") or conditions[j].endswith(
+                                " >="
+                            ):
+                                start_table = index
+
+                    tables = self.variety_tables[start_table:end_table]
+
         cursor = self.conn.cursor(dictionary=True)
-        try:
-            cursor.execute(request, tuple(values))
-        except Exception as error:
-            _logger.exception(str(error))
-            cursor.close()
-            return False
-        else:
-            _logger.debug("UPDATE REQUEST ON %s OK." % table)
-            cursor.close()
-            return True
+        all_ok = True
+        for table in tables:
+
+            request = "UPDATE {table} SET {fields} WHERE {conditions}"
+            request = request.format(
+                table=table,
+                fields=" = %s,".join(fields + ["0"])[0:-2],
+                conditions=" %s".join(conditions + ["0"])[:-1],
+            )
+            try:
+                cursor.execute(request, tuple(values))
+            except Exception as error:
+                _logger.exception(str(error))
+                all_ok = False
+            else:
+                self.conn.commit()
+                _logger.debug("UPDATE REQUEST ON %s OK." % table)
+
+        cursor.close()
+        return all_ok
 
     def update(self, table, element):
         """Update the table for the given element id, using the internal function.
@@ -195,7 +288,45 @@ class Database:
             _logger.warning("Incorrect number of field/values")
             return -1
 
+        if table == "Varieties":
+            index = 0
+            found = False
+            while not found and index < len(fields):
+                if fields[index] == "resource_id":
+                    found = True
+                else:
+                    index += index
+            if found and values[index]:
+                table_num = self._match_variety_table(int(values[index]))
+
+                while not table_num < len(self.variety_tables):
+                    # Create as many tables as needed to classify this variety properly
+                    current_next = len(self.variety_tables) + 1
+                    cursor = self.conn.cursor()
+
+                    cursor.execute(
+                        """CREATE TABLE Varieties_{0} (
+                            id INT AUTO_INCREMENT PRIMARY KEY, 
+                            resource_id INT NOT NULL REFERENCES Resources(id), 
+                            name VARCHAR(40), 
+                            hash VARCHAR(10000), 
+                            content MEDIUMBLOB
+                        );""".format(
+                            current_next
+                        )
+                    )
+
+                    self.variety_tables.append("Varieties_{0}".format(current_next))
+                    _logger.info(
+                        "Created Varieties_{0} for it is not possible to insert more rows in the previous one".format(
+                            current_next
+                        )
+                    )
+
+                table = self.variety_tables[table_num]
+
         request = "INSERT INTO {table} ({fields}) VALUES ({values})"
+
         request = request.format(
             table=table, fields=", ".join(fields), values=("%s, " * len(values))[0:-2]
         )
@@ -235,25 +366,52 @@ class Database:
 
         Returns True on success.
         """
+        tables = [
+            table,
+        ]
+        if table == "Varieties":
+            start_table = 0
+            end_table = -1
+            for i in range(0, len(tables)):
+                if tables[i] == "Varieties":
+                    tables.pop(i)
+                    for j in range(0, len(conditions)):
+                        if conditions[j].startswith("resource_id"):
+                            index = self._match_variety_table(values[j])
+                            if conditions[j].endswith(" ="):
+                                start_table = index
+                                end_table = index + 1
+                            elif conditions[j].endswith(" <") or conditions[j].endswith(
+                                " <="
+                            ):
+                                end_table = index + 1
+                            elif conditions[j].endswith(" >") or conditions[j].endswith(
+                                " >="
+                            ):
+                                start_table = index
+
+                    tables = self.variety_tables[start_table:end_table]
 
         # Slightly improved version
-        request = "DELETE FROM {table} WHERE {conditions}"
-        request = request.format(
-            table=table, conditions=" %s AND".join(conditions + ["0"])[0:-5]
-        )
+        all_ok = True
         cursor = self.conn.cursor(dictionary=True)
-        try:
-            cursor.execute(request, tuple(values))
-        except Exception as error:
 
-            _logger.exception(str(error))
-            cursor.close()
-            return False
-        else:
-            self.conn.commit()
-            _logger.debug("DELETE REQUEST ON {0} OK.".format(table))
-            cursor.close()
-            return True
+        for talbe in tables:
+            request = "DELETE FROM {table} WHERE {conditions}"
+            request = request.format(
+                table=table, conditions=" %s AND".join(conditions + ["0"])[0:-5]
+            )
+            try:
+                cursor.execute(request, tuple(values))
+            except Exception as error:
+                _logger.exception(str(error))
+                all_ok = False
+            else:
+                self.conn.commit()
+                _logger.debug("DELETE REQUEST ON {0} OK.".format(table))
+        cursor.close()
+
+        return all_ok
 
     def delete(self, table, element):
         """Removes the element from the table, using the internal method.
@@ -392,7 +550,7 @@ class DatabaseAdapter:
                 ("run_id =", run["id"]),
             ]
             conditions.extend(resource_conditions)
-            list_of_resources = self.load_resources(
+            list_of_resources = self.load_resources_major(
                 recursive=recursive,
                 resource_conditions=conditions,
                 variety_conditions=variety_conditions,
@@ -400,7 +558,7 @@ class DatabaseAdapter:
 
         result = Run(run["name"], data=list_of_resources)
         result.set_id(run["id"])
-        result.set_threshold(run["comparison_threshold"])
+        result.set_threshold(float(run["comparison_threshold"]))
 
         return result
 
@@ -471,29 +629,36 @@ class DatabaseAdapter:
 
         resources argument must be an iterable.
         """
-        _logger.debug("Save %r" % resource)
+
         a_resource, varieties = self._translate_from_resource(resource)
         a_resource["run_id"] = run_id
-
         row_id = self._db.insert("Resources", a_resource)
+        if not isinstance(row_id, bool):
+            resource.set_id(row_id)
+        _logger.info("Save %r" % resource)
 
         for variety in varieties:
             variety["resource_id"] = row_id
             self._db.insert("Varieties", variety)
 
     def _save_run(self, run, collection_id=None):
-        _logger.debug("Save %r" % run)
+
         a_run = self._translate_from_run(run)
         a_run["collection_id"] = collection_id
         row_id = self._db.insert("Runs", a_run)
+        if not isinstance(row_id, bool):
+            run.set_id(row_id)
+        _logger.info("Save %r" % run)
         for resource in run:
             self._save_resource(resource, run_id=row_id)
 
     def _save_collection(self, collection):
-        _logger.debug("Save %r" % collection)
         a_coll = self._translate_from_collection(collection)
 
         row_id = self._db.insert("RunCollections", a_coll)
+        if not isinstance(row_id, bool):
+            collection.set_id(row_id)
+        _logger.info("Save %r" % collection)
         for run in collection:
             self._save_run(run, collection_id=row_id)
 
@@ -512,13 +677,15 @@ class DatabaseAdapter:
         for obj in obj_list:
             self.save(obj)
 
-    def load_resources(
+    def load_resources_minor(
         self,
         recursive=False,
         resource_conditions=[],
         variety_conditions=[],
         load_content=False,
     ):
+        """Loads resources from database. Better when the set of resources to load is small (specific queries)."""
+
         conditions = []
         values = []
         try:
@@ -552,6 +719,105 @@ class DatabaseAdapter:
             )
 
         return resource_list
+
+    def load_resources_major(
+        self,
+        recursive=False,
+        resource_conditions=[],
+        variety_conditions=[],
+        load_content=False,
+    ):
+        """Loads resources from database. Better when the set of resources to load is big (runs)."""
+
+        res_conditions = []
+        res_values = []
+        try:
+            for cond, val in resource_conditions:
+                res_conditions.append(cond)
+                res_values.append(val)
+        except ValueError:
+            raise RuntimeError(
+                "Error: resource_conditins requires tuples of 2 values in every condition."
+            )
+
+        res_row_list = self._db.select(
+            ["id", "extension", "webpage"],
+            [
+                "Resources",
+            ],
+            res_conditions,
+            res_values,
+            ["id"],
+        )
+
+        var_row_list = []
+        if recursive and len(res_row_list) > 0:
+            min_res_id = res_row_list[0]["id"]
+            max_res_id = res_row_list[-1]["id"]
+
+            var_conditions = ["resource_id >=", "resource_id <="]
+            var_values = [min_res_id, max_res_id]
+            try:
+                for cond, val in variety_conditions:
+                    var_conditions.append(cond)
+                    var_values.append(val)
+            except ValueError:
+                raise RuntimeError(
+                    "Error: variety_conditins requires tuples of 2 values in every condition."
+                )
+
+            if not load_content:
+
+                var_row_list = self._db.select(
+                    ["id", "name", "hash", "resource_id"],
+                    [
+                        "Varieties",
+                    ],
+                    var_conditions,
+                    var_values,
+                    ["resource_id"],
+                )
+            else:
+                var_row_list = self._db.select(
+                    ["id", "name", "hash", "content", "resource_id"],
+                    [
+                        "Varieties",
+                    ],
+                    var_conditions,
+                    var_values,
+                    ["resource_id"],
+                )
+
+        index = 0
+        result = []
+        for res in res_row_list:
+
+            finished = False
+            varieties = []
+            while not finished and index < len(var_row_list):
+                if var_row_list[index]["resource_id"] == res["id"]:
+                    translated_hash = list(var_row_list[index]["hash"][1:-2].split(" "))
+
+                    variety = Resource.Variety(
+                        content=var_row_list[index]["content"]
+                        if "content" in var_row_list[index]
+                        else "NotLoaded",
+                        hash=translated_hash,
+                    )
+                    variety.set_name(var_row_list[index]["name"])
+                    variety.set_id(var_row_list[index]["id"])
+                    varieties.append(variety)
+
+                    index += 1
+                else:
+                    finished = True
+
+            aux = Resource(res["extension"], res["webpage"])
+            aux.set_id(res["id"])
+            aux.add_varieties(varieties)
+            result.append(aux)
+
+        return result
 
     def load_runs(
         self,
@@ -661,7 +927,7 @@ class DatabaseAdapter:
 
         return result
 
-    def find_matching_resource(self, a_resource, run_id=None):
+    def find_matching_resource(self, a_resource, run_id=None, recursive=False):
         res_conditions = [
             ("extension =", a_resource.get_extension()),
             ("webpage =", a_resource.get_webpage()),
@@ -675,22 +941,19 @@ class DatabaseAdapter:
         if not (run_id is None):
             res_conditions.append(("run_id =", run_id))
 
-        stored_resources = self.load_resources(
-            recursive=True, resource_conditions=res_conditions
+        stored_resources = self.load_resources_major(
+            recursive=recursive, resource_conditions=res_conditions
         )
-        _logger.debug(stored_resources)
-        if len(stored_resources) > 0:
-            result = []
-            for db_res in stored_resources:
-                if a_resource == db_res:
-                    result.append(db_res)
-                else:
-                    _logger.debug("%s not equal to %s" % (a_resource, db_res))
-            return result if len(result) > 0 else None
-        else:
-            return None
+        _logger.debug("Stored Resources found: %r" % stored_resources)
 
-    def find_matching_run(self, a_run, col_id=None):
+        result = []
+
+        tmp_run = Run("tmp", stored_resources)
+        index = tmp_run.find_similar(a_resource)
+
+        return tmp_run[index] if not (index is None) else None
+
+    def find_matching_run(self, a_run, col_id=None, recursive=False):
         conditions = [
             ("name =", a_run.get_name()),
         ]
@@ -704,16 +967,13 @@ class DatabaseAdapter:
             conditions.append(("collection_id =", col_id))
 
         stored_runs = self.load_runs(
-            recursive=False,
+            recursive=recursive,
             run_conditions=conditions,
         )
 
-        if len(stored_runs) > 0:
-            return stored_runs
-        else:
-            return None
+        return stored_runs[0] if len(stored_runs) > 0 else None
 
-    def find_matching_collection(self, a_coll):
+    def find_matching_collection(self, a_coll, recursive=False):
         """Returns a list of matching collections. Else, returns None."""
         conditions = [
             ("name =", a_coll.get_name()),
@@ -724,7 +984,7 @@ class DatabaseAdapter:
             conditions.append(("id =", the_id))
 
         stored_collection = self.load_collections(
-            recursive=False, collection_conditions=conditions
+            recursive=recursive, collection_conditions=conditions
         )
 
         # name unique, so length is always 1
@@ -733,12 +993,6 @@ class DatabaseAdapter:
         else:
             return None
 
-    def find_matching(self, target):
-        """Finds matching object(s) in databse if exists, and returns a list with them. Else, returns none."""
-
-        if isinstance(target, RunCollection):
-            self.find_matching_collection(target)
-
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.DEBUG)
+_logger.setLevel(_LOG_LEVEL)

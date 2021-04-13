@@ -7,6 +7,8 @@ from sys import getsizeof
 
 from datasketch import MinHash
 
+from config import _LOG_LEVEL
+
 
 def _create_minhash(in_data):
     """Returns a minhash using in_data.
@@ -140,6 +142,22 @@ class Resource:
             id=self._id, extension=self.extension, webpage=self.webpage
         )
 
+    def __len__(self):
+        """List length"""
+        return len(self.varieties)
+
+    def __getitem__(self, ii):
+        """Get a list item"""
+        return self.varieties[ii]
+
+    def __delitem__(self, ii):
+        """Delete an item"""
+        del self.varieties[ii]
+
+    def __setitem__(self, ii, val):
+        # optional: self._acl_check(val)
+        self.varieties[ii] = val
+
     def get_id(self):
         """getter for private field _id."""
 
@@ -174,9 +192,16 @@ class Resource:
         """Compares this resource with other. Returns max similarity found, that is a float number between 0 and 1, both included."""
 
         max_sim = 0.0
+
         for case in self.varieties:
             for target in other.varieties:
-                sim = case.hash.jaccard(target.hash)
+                # try content and jaccard, for jaccard not always works
+
+                sim_jac = case.hash.jaccard(target.hash)
+
+                sim_comp = 1.0 if case.content == target.content else 0.0
+
+                sim = sim_comp if sim_comp > sim_jac else sim_jac
 
                 if sim > max_sim:
                     max_sim = sim
@@ -184,6 +209,9 @@ class Resource:
         return max_sim
 
     def join(self, other):
+        """Attempts joining self with other. If changed are made in self, returns True."""
+
+        made_changes = False
         for target in other.varieties:
             max_sim = 0
             for case in self.varieties:
@@ -195,6 +223,9 @@ class Resource:
             if max_sim > Run._COMPARISON_THRESHOLD and max_sim < 0.99:
                 # It's not the same!
                 self.varieties.append(target)
+                made_changes = True
+
+        return made_changes
 
     def __eq__(self, obj):
 
@@ -202,8 +233,8 @@ class Resource:
         _logger.debug("Similarity is: %f" % similarity)
         return (
             similarity >= Run._COMPARISON_THRESHOLD
-            and self.extension == obj.extension
-            and self.webpage == obj.webpage
+            and self.get_extension() == obj.get_extension()
+            and self.get_webpage() == obj.get_webpage()
         )
 
     def get_varieties(self):
@@ -274,7 +305,7 @@ class Run(list):
         """Setter for _name private property."""
 
         self._name = new_name
-    
+
     def get_threshold(self):
         """Getter for _COMPARISON_THRESHOLD private property."""
 
@@ -283,7 +314,7 @@ class Run(list):
     def set_threshold(self, threshold):
         """Setter for _COMPARISON_THRESHOLD private property."""
         if not (threshold is None):
-            self._COMPARISON_THRESHOLD = threshold 
+            self._COMPARISON_THRESHOLD = threshold
 
     def __repr__(self):
         return "{0} <id: {1}, name: {2}>".format(
@@ -324,19 +355,17 @@ class Run(list):
 
     def __contains__(self, val: Resource):
         max_sim = 0
-        
+
         index = self.find_similar(val)
 
         if not (index is None):
             if (
-                and self._list[index].extension == val.extension
+                self._list[index].extension == val.extension
                 and self._list[index].webpage == val.webpage
             ):
                 return True
-        
-        return False
 
-        
+        return False
 
     def find_similar(self, other: Resource):
         """Finds the resource in the collection that is most similar to the other adn returns it's index. If similarity treshold is not reached, returns None."""
@@ -355,14 +384,32 @@ class Run(list):
 
     def intersection(self, other):
         """Makes the intersection of the given run and self, and returns a Run object with the common resources in both Runs."""
-        
-        _logger.debug("Intersection of %s and %s" % (self, other))
-        result = Run("Intersection_of_runs")
+
+        _logger.debug("Intersection of %r and %r" % (self, other))
+        current = int(time())
+        result = Run("In_%i" % current)
         for resource in self._list:
             index = other.find_similar(resource)
             if not (index is None):
                 result.append(other[index])
+                del other[index]
+            else:
+                _logger.debug("%r discarded" % resource)
 
+        return result
+
+    def difference(self, other):
+        """Makes the difference of the given run and self, and returns a Run object with the Resources in self that don't exist in other."""
+
+        _logger.debug("Difference of %r and %r" % (self, other))
+        current = int(time())
+        result = Run("Dif_%i" % current)
+        for res in self._list:
+            index = other.find_similar(res)
+            if index is None:
+                result.append(res)
+            else:
+                _logger.debug("%r discarded" % res)
         return result
 
     def can_join(self, other):
@@ -381,12 +428,12 @@ class Run(list):
     def join(self, other, compatible=False):
         """Attempts joining self with other. If compatible is True, they will only joined if they have the same id or name."""
 
-        joined = True
+        changes_made = False
 
         if compatible:
-            joined = self.can_join(other)
+            compatible = self.can_join(other)
 
-        if joined:
+        if compatible:
             assert isinstance(other, Run)
             _logger.debug("Resources in run from DB: %r" % self._list)
             for res in other:
@@ -403,6 +450,7 @@ class Run(list):
                             "Joining resources %r and %r" % (self._list[index], res)
                         )
                         self._list[index].add_varieties(res.get_varieties())
+                        changes_made = True
                     elif similarity >= 0.99:
                         _logger.debug(
                             "Coincidence found in %r and %r" % (self._list[index], res)
@@ -413,9 +461,10 @@ class Run(list):
                         "No similar resource found in run. Adding %r to %r"
                         % (res, self)
                     )
+                    changes_made = True
 
         _logger.debug("%r joined with %r" % (self, other))
-        return joined
+        return changes_made
 
     def __sizeof__(self):
         suma = getsizeof(self._name)
@@ -526,26 +575,33 @@ class RunCollection(list):
     def __contains__(self, name: str):
         """Returns True if the run is in the run list."""
 
-        found = False
+        return True if not (self.find(name) is None) else False
 
-        for case in self._list:
-            found = case.get_name() == name
-            if found:
-                break
-        return found
+    def find(self, name: str):
+        """Returns the position of name in the list, if it exists. Else, returns None."""
+
+        found = False
+        index = 0
+        while not found and index < len(self._list):
+            found = self._list[index].get_name() == name
+            if not found:
+                index += 1
+
+        return index if found else None
 
     def constant_resources(self):
         # Intersection of all sets
+        res = None
 
         if not (self._list is None):
             # More efficient for we use last intersection to calc next. Smaller sets.
-            res = self._list.next()
             for run in self._list:
-                res = res.intersection(run)
+                if not (res is None):
+                    res = res.intersection(run)
+                else:
+                    res = run
 
-            return res
-        else:
-            return None
+        return res
 
     def max_resources_per_run(self):
         ret = None
@@ -628,4 +684,4 @@ class RunCollection(list):
 
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.DEBUG)
+_logger.setLevel(_LOG_LEVEL)

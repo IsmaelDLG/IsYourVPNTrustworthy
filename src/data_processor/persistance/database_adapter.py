@@ -135,6 +135,15 @@ class Database:
                             start_table = index
 
                 tables.extend(self.variety_tables[start_table:end_table])
+                new_fields = []
+                new_conditions = []
+                for table in tables:
+                    for field in fields:
+                        new_fields.append("{0}.{1}".format(table, field))
+                for table in tables:
+                    for condition in conditions:
+                        new_conditions.append("{0}.{1}".format(table, condition))
+
 
         request = "SELECT {fields} FROM {tables}{conditions}{order}"
 

@@ -40,11 +40,11 @@ class DataProcessor:
                 "Collection %r has the following runs: %r"
                 % (a_collection, list_of_runs)
             )
+            
             for run in list_of_runs:
                 a_run = self._db.load_runs(
                     recursive=True, run_conditions=[("id =", run.get_id())]
                 )[0]
-                _logger.debug("Processing %r" % a_run)
                 if result is None:
                     result = a_run
                 else:

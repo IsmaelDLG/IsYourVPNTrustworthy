@@ -112,10 +112,11 @@ def load_files_in_database(db):
                     )
                     changes = db_run.join(run, compatible=True)
                     if changes:
-                        db.save(db_run)
+
+                        db.save(db_run, parent_id=db_col.get_id())
                 else:
                     _logger.info("Not found. Saving new run")
-                    db.save(run)
+                    db.save(run, parent_id=db_col.get_id())
         else:
             _logger.info("Match not found for: %r. Saving new collection" % col)
             db.save(col)

@@ -268,7 +268,6 @@ class Resource:
 
         return res
 
-
 class Run(list):
 
     _COMPARISON_THRESHOLD = 0.80
@@ -385,9 +384,10 @@ class Run(list):
     def intersection(self, other):
         """Makes the intersection of the given run and self, and returns a Run object with the common resources in both Runs."""
 
-        _logger.debug("Intersection of %r and %r" % (self, other))
+        _logger.info("Intersection of %r and %r" % (self, other))
         current = int(time())
         result = Run("In_%i" % current)
+
         for resource in self._list:
             index = other.find_similar(resource)
             if not (index is None):
@@ -486,7 +486,6 @@ class Run(list):
             res["_resources"].append(resource.print())
 
         return res
-
 
 class RunCollection(list):
 

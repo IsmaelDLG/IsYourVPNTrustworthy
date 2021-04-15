@@ -178,9 +178,21 @@ if __name__ == "__main__":
 
         # intersection_list = dp.common_files_batch(excluded= ["no_vpn", "Result_", "1click", "adguard", "astard", "betternet", "browsec"])
         intersection_list = dp.common_files_batch()
-        dp.save_partial_result_as_collection("Result_CF_01", intersection_list)
+        int_result = []
+        for run in intersection_list:
+            id = db.save(run)
+            if id > 0 and not (id is None):
+                run.set_id(id)
+            int_result.append(run)
+        # dp.save_partial_result_as_collection("Result_CF_01", int_result)
 
         _logger.info("Finding diffenrent files in all collections from no_vpn")
 
         difference_list = dp.different_files_batch()
-        dp.save_partial_result_as_collection("Result_DF_01", difference_list)
+        diff_result = []
+        for run in difference_list:
+            id = db.save(run)
+            if id > 0 and not (id is None):
+                run.set_id(id)
+            diff_result.append(run)
+        # dp.save_partial_result_as_collection("Result_DF_01", difference_list)

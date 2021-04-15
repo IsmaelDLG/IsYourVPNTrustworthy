@@ -8,7 +8,7 @@ import logging
 from time import time
 from json import dump as jdump
 
-from config import _RESULTS_DIRECTORY
+from config import _RESULTS_DIRECTORY, _LOG_LEVEL
 
 
 class DataProcessor:
@@ -36,19 +36,29 @@ class DataProcessor:
             list_of_runs = self._db.load_runs(
                 run_conditions=[("collection_id =", a_collection.get_id())]
             )
-            _logger.debug(
+            _logger.info(
                 "Collection %r has the following runs: %r"
                 % (a_collection, list_of_runs)
             )
-            
-            for run in list_of_runs:
+
+            done = False
+            i = 0
+            while not done and i < len(list_of_runs):
                 a_run = self._db.load_runs(
-                    recursive=True, run_conditions=[("id =", run.get_id())]
+                    recursive=True, run_conditions=[("id =", list_of_runs[i].get_id())]
                 )[0]
                 if result is None:
                     result = a_run
                 else:
-                    result = result.intersection(a_run)
+                    # For some reason, some runs do not have stored resources. Avoid misleading mistakes with this check
+                    if len(a_run) > 0:
+                        result = result.intersection(a_run)
+
+                if len(result) < 1:
+                    done = True
+
+                i += 1
+
         return result
 
     def get_static_files_in_collection(self, collection_name, redo=False):
@@ -57,15 +67,17 @@ class DataProcessor:
         a_collection = None
         result = None
         if not redo:
-            a_collection = self._db.load_collections(
-                collection_conditions=[
+            a_run = self._db.load_runs(
+                recursive=True,
+                run_conditions=[
                     ("name =", "CF_{0}".format(collection_name[0:11]))
-                ]
+                ],
             )
-            if not len(a_collection) > 0:
+            if not len(a_run) > 0:
                 result = self._calc_common_files(collection_name)
             else:
-                result = a_collection[0]
+                result = a_run[0]
+                _logger.info("Using stored static files for collection %s" % collection_name)
         else:
             result = self._calc_common_files(collection_name)
 
@@ -74,22 +86,20 @@ class DataProcessor:
     def common_files_batch(self, excluded=["Result_CF_01", "Result_DF_01"]):
         """Batch version to get all common files in all VPN extension.
 
-        Returns a list of Runs. Each Run represents the common files of a certain extension.
+        For each run, returns a run that represents the common files, generator-like.
         """
 
         conditions = [("name !=", x) for x in excluded]
         col_list = self._db.load_collections(
             recursive=False, collection_conditions=conditions
         )
-        intersection_list = []
         for col in col_list:
             _logger.debug(
                 "Finding common files in collection {0}".format(col.get_name())
             )
-            result = self.get_static_files_in_collection(col.get_name())
+            result = self.get_static_files_in_collection(col.get_name(), redo=True)
             if not (result is None):
                 result.set_name("CF_{0}".format(col.get_name()[:11]))
-                intersection_list.append(result)
                 with open(
                     "{0}{1}_common_files_in_collection.json".format(
                         _RESULTS_DIRECTORY, col.get_name()
@@ -98,8 +108,7 @@ class DataProcessor:
                 ) as f:
                     jdump(result.print(), f)
                 _logger.debug("Finished")
-
-        return intersection_list
+                yield result
 
     def different_files_batch(self, target="no_vpn", use_previous=True):
         """Batch version to get all different files in all VPN extensions from target.
@@ -109,54 +118,26 @@ class DataProcessor:
         If use_previous is True, it attempts to use the CF_* collections to reduce computing time.
         """
 
-        target = self._db.load_collections(
-            collection_conditions=[("name =", "CF_{0}".format(target[:11]))]
-        )
-
-        target_col = None
-        if len(target) > 0:
-            target_col = target[0]
-        else:
-            data = self.get_static_files_in_collection(target)
-            target_col = RunCollection("CF_{0}".format(target[:11]), data=data)
-            target_col = self.save_partial_result_as_collection(target_col)
-
+        target =  self.get_static_files_in_collection(target)
         cols = self._db.load_collections(
             recursive=False, collection_conditions=[("name NOT LIKE", "%Result%")]
         )
-
-        result = []
         for col in cols:
-            a_col = self._db.load_collections(
-                recursive=True,
-                collection_conditions=[
-                    ("name =", "CF_{0}".format(col.get_name()[:11]))
-                ],
-            )
+            other = self.get_static_files_in_collection(col.get_name()[:11])
+            if not (other is None):
+                aux = other.difference(target)
+                aux.set_name("DF_{0}".format(col.get_name()[:11]))
+                with open(
+                    "{0}{1}_different_files_from_{2}.json".format(
+                        _RESULTS_DIRECTORY, col.get_name(), target.get_name()
+                    ),
+                    "w",
+                ) as f:
+                    jdump(aux.print(), f)
 
-            if len(a_col) > 0:
-                a_col = a_col[0]
-            else:
-                data = self.get_static_files_in_collection(col.get_name()[:11])
-                other_col = RunCollection(
-                    "CF_{0}".format(col.get_name()[:11]), data=data
-                )
-                a_col = self.save_partial_result_as_collection(other_col)
+                yield aux
 
-            aux = a_col.difference(target_col)
-            with open(
-                "{0}{1}_different_files_from_{2}.json".format(
-                    _RESULTS_DIRECTORY, col.get_name(), target
-                ),
-                "w",
-            ) as f:
-                jdump(aux.print(), f)
-
-            result.append(aux)
-
-        return result if len(result) > 0 else None
-
-    def save_partial_result_as_collection(name, data):
+    def save_partial_result_as_collection(self, name, data):
         """Saves partial result and returns it with DB data."""
         col = RunCollection(name, data=data)
         for i in range(0, len(col)):
@@ -182,4 +163,4 @@ class DataProcessor:
 
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.DEBUG)
+_logger.setLevel(_LOG_LEVEL)

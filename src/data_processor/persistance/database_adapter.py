@@ -112,7 +112,9 @@ class Database:
         return i - 1
 
     def __select(self, fields, tables, conditions, values, order):
-        """Internal select function."""
+        """Internal select function.
+
+        Not ready to do joins in tables or to use separate intervals in where clauses."""
 
         start_table = 0
         end_table = -1
@@ -135,17 +137,8 @@ class Database:
                             start_table = index
 
                 tables.extend(self.variety_tables[start_table:end_table])
-                new_fields = []
-                new_conditions = []
-                for table in tables:
-                    for field in fields:
-                        new_fields.append("{0}.{1}".format(table, field))
-                for table in tables:
-                    for condition in conditions:
-                        new_conditions.append("{0}.{1}".format(table, condition))
 
-
-        request = "SELECT {fields} FROM {tables}{conditions}{order}"
+        request = "SELECT {fields} FROM {tables}{conditions}"
 
         if conditions:
             cond_list = " WHERE "
@@ -164,26 +157,30 @@ class Database:
         else:
             cond_list = ""
 
+        for table in tables:
+            end_request = " UNION ".join(
+                [
+                    request.format(
+                        fields=", ".join(fields),
+                        tables=table,
+                        conditions=cond_list,
+                    )
+                    for table in tables
+                ]
+            )
         if order:
             ord_list = " ORDER BY {0}".format(", ".join(order))
-        else:
-            ord_list = ""
 
-        request = request.format(
-            fields=", ".join(fields),
-            tables=", ".join(tables),
-            conditions=cond_list,
-            order=ord_list,
-        )
+            end_request = end_request + ord_list
 
         cursor = self.conn.cursor(dictionary=True)
         results = []
-        # _logger.debug("%r, %r" % (request, values))
+        _logger.debug("%r, %r" % (end_request, values*len(tables)))
         try:
             if values:
-                cursor.execute(request, tuple(values))
+                cursor.execute(end_request, tuple(values*len(tables)))
             else:
-                cursor.execute(request)
+                cursor.execute(end_request)
         except Exception as error:
             _logger.exception(str(error))
         else:
@@ -537,8 +534,13 @@ class DatabaseAdapter:
                 "resource_id": resource.get_id(),
                 "name": variety.get_name(),
                 "hash": the_hash,
-                "content": variety.get_content(),
             }
+
+            content = variety.get_content()
+
+            if content != "NotLoaded":
+                variety_row["content"] = content
+
 
             an_id = variety.get_id()
             if not (an_id is None):
@@ -650,6 +652,8 @@ class DatabaseAdapter:
             variety["resource_id"] = row_id
             self._db.insert("Varieties", variety)
 
+        return row_id
+
     def _save_run(self, run, collection_id=None):
 
         a_run = self._translate_from_run(run)
@@ -661,6 +665,8 @@ class DatabaseAdapter:
         for resource in run:
             self._save_resource(resource, run_id=row_id)
 
+        return row_id
+
     def _save_collection(self, collection):
         a_coll = self._translate_from_collection(collection)
 
@@ -671,14 +677,18 @@ class DatabaseAdapter:
         for run in collection:
             self._save_run(run, collection_id=row_id)
 
+        return row_id
+
     def save(self, obj, parent_id=None):
         """Tries to update or insert an object into the DB."""
+        res = None
         if isinstance(obj, Resource):
-            self._save_resource(obj, run_id=parent_id)
+            res = self._save_resource(obj, run_id=parent_id)
         elif isinstance(obj, Run):
-            self._save_run(obj, collection_id=parent_id)
+            res = self._save_run(obj, collection_id=parent_id)
         elif isinstance(obj, RunCollection):
-            self._save_collection(obj)
+            res = self._save_collection(obj)
+        return res
 
     def save_all(self, obj_list):
         """Tries to update or insert the objects provided."""

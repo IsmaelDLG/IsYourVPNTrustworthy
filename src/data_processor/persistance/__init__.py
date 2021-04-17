@@ -43,7 +43,7 @@ class Resource:
                 filename = filepath.split(separator)[-1]
                 self.name = ".".join(filename.split(".")[0:-1])
 
-            if content:
+            if not (content is None):
                 self.content = content
             else:
                 try:
@@ -55,7 +55,11 @@ class Resource:
                     self.content = None
 
             if isinstance(hash, list):
-                self.hash = MinHash(num_perm=256, hashvalues=hash)
+                try:
+                    self.hash = MinHash(num_perm=256, hashvalues=hash)
+                except ValueError:
+                    _logger.error("Hash: %r" % hash)
+
             else:
                 if isfile(filepath):
                     self.hash = _create_minhash(filepath)
@@ -105,11 +109,11 @@ class Resource:
 
             self.content = other
 
+        def __str__(self):
+            return "Variety<{0}, {1}>".format(self.get_name(), self.get_content())
+
         def __repr__(self):
             return "Variety<{id}>".format(id=self._id)
-
-        def __str__(self):
-            return "Variety<{0}, {1}>".format(self.get_id(), self.get_name())
 
         def __sizeof___(self):
             return getsizeof(self.content) + getsizeof(self.hash) + getsizeof(self.name)
@@ -163,10 +167,14 @@ class Resource:
 
         return self._id
 
-    def set_id(self, an_id):
+    def set_id(self, an_id, recursive=False):
         """setter for private field _id."""
 
         self._id = an_id
+
+        if recursive and an_id is None:
+            for i in range(0, len(self.varieties)):
+                self.varieties[i].set_id(an_id)
 
     def get_extension(self):
         """getter for field extension."""
@@ -196,8 +204,13 @@ class Resource:
         for case in self.varieties:
             for target in other.varieties:
                 # try content and jaccard, for jaccard not always works
-
-                sim_jac = case.hash.jaccard(target.hash)
+                sim_jac = 0.0
+                try:
+                    sim_jac = case.hash.jaccard(target.hash)
+                except:
+                    _logger.error(
+                        "Could not compute jaccard of {0} and {1}".format(case, target)
+                    )
 
                 sim_comp = 1.0 if case.content == target.content else 0.0
 
@@ -214,11 +227,15 @@ class Resource:
         made_changes = False
         for target in other.varieties:
             max_sim = 0
-            for case in self.varieties:
-                sim = case.hash.jaccard(target.hash)
+            for i in range(0, len(self.varieties)):
+                sim = self.varieties[i].hash.jaccard(target.hash)
 
                 if sim > max_sim:
                     max_sim = sim
+
+                if max_sim >= 0.99:
+                    self.varieties[i].content = target.content
+                    made_changes = True
 
             if max_sim > Run._COMPARISON_THRESHOLD and max_sim < 0.99:
                 # It's not the same!
@@ -268,6 +285,7 @@ class Resource:
 
         return res
 
+
 class Run(list):
 
     _COMPARISON_THRESHOLD = 0.80
@@ -290,10 +308,14 @@ class Run(list):
 
         return self._id
 
-    def set_id(self, an_id):
+    def set_id(self, an_id, recursive=False):
         """setter for private field _id."""
 
         self._id = an_id
+
+        if recursive and an_id is None:
+            for i in range(0, len(self._list)):
+                self._list[i].set_id(an_id, recursive)
 
     def get_name(self):
         """Getter for _name private property."""
@@ -391,6 +413,7 @@ class Run(list):
         for resource in self._list:
             index = other.find_similar(resource)
             if not (index is None):
+                other[index].set_id(None, recursive=True)
                 result.append(other[index])
                 del other[index]
             else:
@@ -407,6 +430,7 @@ class Run(list):
         for res in self._list:
             index = other.find_similar(res)
             if index is None:
+                res.set_id(None, recursive=True)
                 result.append(res)
             else:
                 _logger.debug("%r discarded" % res)
@@ -425,45 +449,42 @@ class Run(list):
 
         return joined
 
-    def join(self, other, compatible=False):
+    def join(self, other):
         """Attempts joining self with other. If compatible is True, they will only joined if they have the same id or name."""
 
         changes_made = False
 
-        if compatible:
-            compatible = self.can_join(other)
-
-        if compatible:
-            assert isinstance(other, Run)
-            _logger.debug("Resources in run from DB: %r" % self._list)
-            for res in other:
-                index = self.find_similar(res)
-                if not (index is None):
-                    similarity = self._list[index].compare(res)
-                    _logger.debug(
-                        "Similarity between %r and %r is %f"
-                        % (self._list[index], res, similarity)
+        assert isinstance(other, Run)
+        _logger.debug("Resources in run from DB: %r" % self._list)
+        for res in other:
+            index = self.find_similar(res)
+            if not (index is None):
+                similarity = self._list[index].compare(res)
+                _logger.debug(
+                    "Similarity between %r and %r is %f"
+                    % (self._list[index], res, similarity)
+                )
+                # Si similarity es 1, son el mateix i no hem de fer res
+                if similarity >= self._COMPARISON_THRESHOLD and similarity < 0.99:
+                    _logger.info(
+                        "Joining resources %r and %r" % (self._list[index], res)
                     )
-                    # Si similarity es 1, son el mateix i no hem de fer res
-                    if similarity >= self._COMPARISON_THRESHOLD and similarity < 0.99:
-                        _logger.debug(
-                            "Joining resources %r and %r" % (self._list[index], res)
-                        )
-                        self._list[index].add_varieties(res.get_varieties())
-                        changes_made = True
-                    elif similarity >= 0.99:
-                        _logger.debug(
-                            "Coincidence found in %r and %r" % (self._list[index], res)
-                        )
-                else:
-                    self.append(res)
+                    changes = self._list[index].join(res)
+                    if changes:
+                        changes_made = changes
+                elif similarity >= 0.99:
                     _logger.debug(
-                        "No similar resource found in run. Adding %r to %r"
-                        % (res, self)
+                        "Coincidence found in %r and %r" % (self._list[index], res)
                     )
-                    changes_made = True
 
-        _logger.debug("%r joined with %r" % (self, other))
+            else:
+                self.append(res)
+                _logger.debug(
+                    "No similar resource found in run. Adding %r to %r" % (res, self)
+                )
+                changes_made = True
+
+        _logger.info("%r joined with %r" % (self, other))
         return changes_made
 
     def __sizeof__(self):
@@ -487,6 +508,7 @@ class Run(list):
 
         return res
 
+
 class RunCollection(list):
 
     _id = None
@@ -508,10 +530,14 @@ class RunCollection(list):
 
         return self._id
 
-    def set_id(self, an_id):
+    def set_id(self, an_id, recursive=False):
         """setter for private field _id."""
 
         self._id = an_id
+
+        if recursive and an_id is None:
+            for i in range(0, len(self._list)):
+                self._list[i].set_id(an_id, recursive)
 
     def get_name(self):
         """Getter for _name private property."""

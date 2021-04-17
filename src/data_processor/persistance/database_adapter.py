@@ -58,7 +58,7 @@ class Database:
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(14) UNIQUE,
                 comparison_threshold DECIMAL(3,3),
-                collection_id INT NOT NULL,
+                collection_id INT,
                 FOREIGN KEY (collection_id) REFERENCES RunCollections (id) ON DELETE CASCADE);"""
         )
 
@@ -175,10 +175,10 @@ class Database:
 
         cursor = self.conn.cursor(dictionary=True)
         results = []
-        _logger.debug("%r, %r" % (end_request, values*len(tables)))
+        _logger.debug("%r, %r" % (end_request, values * len(tables)))
         try:
             if values:
-                cursor.execute(end_request, tuple(values*len(tables)))
+                cursor.execute(end_request, tuple(values * len(tables)))
             else:
                 cursor.execute(end_request)
         except Exception as error:
@@ -313,10 +313,11 @@ class Database:
                     cursor.execute(
                         """CREATE TABLE Varieties_{0} (
                             id INT AUTO_INCREMENT PRIMARY KEY, 
-                            resource_id INT NOT NULL REFERENCES Resources(id), 
+                            resource_id INT NOT NULL, 
                             name VARCHAR(40), 
                             hash VARCHAR(10000), 
-                            content MEDIUMBLOB
+                            content MEDIUMBLOB,
+                            FOREIGN KEY (resource_id) REFERENCES Resources (id) ON DELETE CASCADE
                         );""".format(
                             current_next
                         )
@@ -540,7 +541,6 @@ class DatabaseAdapter:
 
             if content != "NotLoaded":
                 variety_row["content"] = content
-
 
             an_id = variety.get_id()
             if not (an_id is None):
@@ -945,6 +945,43 @@ class DatabaseAdapter:
             )
 
         return result
+
+    def find_matching_varieties(self, a_variety, conditions=[], limit=None):
+        """Loads varieties from the database that match in name with the given variety. ANy toher conditions can be provided in conditions list."""
+
+        var_conditions = [
+            ("name =", a_variety.get_name()),
+        ]
+        var_conditions.extend(conditions)
+
+        conditions = []
+        values = []
+        for cond, val in var_conditions:
+            conditions.append(cond)
+            values.append(val)
+
+        row_list = []
+        for table in self._db.variety_tables:
+            rows = self._db.select(
+                ["id", "name", "hash", "content"], [table], conditions, values, ["id"]
+            )
+            row_list.extend(rows)
+            if not (limit is None) and len(row_list) >= limit:
+                _logger.info("Limit for find_matching_resources reached")
+                break
+
+        variety_list = []
+        for row in row_list:
+            translated_hash = list(row["hash"][1:-2].split(" "))
+
+            variety = Resource.Variety(
+                content=row["content"],
+                hash=translated_hash,
+            )
+            variety.set_name(row["name"])
+            variety.set_id(row["id"])
+            variety_list.append(variety)
+        return variety_list
 
     def find_matching_resource(self, a_resource, run_id=None, recursive=False):
         res_conditions = [

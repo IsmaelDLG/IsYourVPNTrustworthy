@@ -59,6 +59,12 @@ class DataProcessor:
 
                 i += 1
 
+            if not (result is None):
+                result.set_name("CF_{0}".format(collection_name[:11]))
+                id = self._db.save(result)
+                if id > 0 and not (id is None):
+                    result.set_id(id)
+
         return result
 
     def get_static_files_in_collection(self, collection_name, redo=False):
@@ -69,15 +75,15 @@ class DataProcessor:
         if not redo:
             a_run = self._db.load_runs(
                 recursive=True,
-                run_conditions=[
-                    ("name =", "CF_{0}".format(collection_name[0:11]))
-                ],
+                run_conditions=[("name =", "CF_{0}".format(collection_name[0:11]))],
             )
             if not len(a_run) > 0:
                 result = self._calc_common_files(collection_name)
             else:
                 result = a_run[0]
-                _logger.info("Using stored static files for collection %s" % collection_name)
+                _logger.info(
+                    "Using stored static files for collection %s" % collection_name
+                )
         else:
             result = self._calc_common_files(collection_name)
 
@@ -97,16 +103,15 @@ class DataProcessor:
             _logger.debug(
                 "Finding common files in collection {0}".format(col.get_name())
             )
-            result = self.get_static_files_in_collection(col.get_name(), redo=True)
+            result = self.get_static_files_in_collection(col.get_name())
             if not (result is None):
-                result.set_name("CF_{0}".format(col.get_name()[:11]))
                 with open(
                     "{0}{1}_common_files_in_collection.json".format(
                         _RESULTS_DIRECTORY, col.get_name()
                     ),
                     "w",
                 ) as f:
-                    jdump(result.print(), f)
+                    jdump(result.print(), f, indent=2)
                 _logger.debug("Finished")
                 yield result
 
@@ -118,22 +123,22 @@ class DataProcessor:
         If use_previous is True, it attempts to use the CF_* collections to reduce computing time.
         """
 
-        target =  self.get_static_files_in_collection(target)
+        target = self.get_static_files_in_collection(target)
         cols = self._db.load_collections(
             recursive=False, collection_conditions=[("name NOT LIKE", "%Result%")]
         )
         for col in cols:
-            other = self.get_static_files_in_collection(col.get_name()[:11])
+            other = self.get_static_files_in_collection(col.get_name())
             if not (other is None):
                 aux = other.difference(target)
                 aux.set_name("DF_{0}".format(col.get_name()[:11]))
                 with open(
                     "{0}{1}_different_files_from_{2}.json".format(
-                        _RESULTS_DIRECTORY, col.get_name(), target.get_name()
+                        _RESULTS_DIRECTORY, other.get_name()[3:], target.get_name()
                     ),
                     "w",
                 ) as f:
-                    jdump(aux.print(), f)
+                    jdump(aux.print(), f, indent=2)
 
                 yield aux
 

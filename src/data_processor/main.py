@@ -110,9 +110,8 @@ def load_files_in_database(db):
                     db_run = db.find_matching_run(
                         run, col_id=db_col.get_id(), recursive=True
                     )
-                    changes = db_run.join(run, compatible=True)
+                    changes = db_run.join(run)
                     if changes:
-
                         db.save(db_run, parent_id=db_col.get_id())
                 else:
                     _logger.info("Not found. Saving new run")
@@ -180,19 +179,46 @@ if __name__ == "__main__":
         intersection_list = dp.common_files_batch()
         int_result = []
         for run in intersection_list:
-            id = db.save(run)
-            if id > 0 and not (id is None):
-                run.set_id(id)
             int_result.append(run)
         # dp.save_partial_result_as_collection("Result_CF_01", int_result)
+        _logger.info("Finished processing. Printing Results.")
+        for run in int_result:
+            beg = 1
+            for res in run:
+                result = db.load_resources_major(
+                    recursive=True, resource_conditions=[("id =", res.get_id())]
+                )
+                if len(result) > 0:
+                    result = result[0]
+                for var in result.varieties:
+
+                    var_list = db.find_matching_varieties(var, limit=5)
+                    for v in var_list:
+                        content = v.get_content()
+                        try:
+                            content = content.encode()
+                        except:
+                            _logger.debug("Content is bytes already")
+
+                        if not (content is None) and content != b"NotLoaded":
+                            with open(
+                                "{0}_file{1}.txt".format(
+                                    _RESULTS_DIRECTORY
+                                    + "isolated_files\\"
+                                    + run.get_name()[3:],
+                                    beg if beg > 9 else "0" + str(beg),
+                                ),
+                                "w",
+                            ) as f:
+                                f.write(content.decode())
+
+                            break
+                    beg += 1
 
         _logger.info("Finding diffenrent files in all collections from no_vpn")
 
         difference_list = dp.different_files_batch()
         diff_result = []
         for run in difference_list:
-            id = db.save(run)
-            if id > 0 and not (id is None):
-                run.set_id(id)
             diff_result.append(run)
         # dp.save_partial_result_as_collection("Result_DF_01", difference_list)

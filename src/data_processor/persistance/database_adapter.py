@@ -14,6 +14,7 @@ from config import (
     _DB_USER,
     _VARIETIES_SIZE,
     _LOG_LEVEL,
+    _HASH_LINE_SIZE,
 )
 from persistance import Resource, Run, RunCollection
 
@@ -57,7 +58,6 @@ class Database:
             """CREATE TABLE IF NOT EXISTS Runs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(14) UNIQUE,
-                comparison_threshold DECIMAL(3,3),
                 collection_id INT,
                 FOREIGN KEY (collection_id) REFERENCES RunCollections (id) ON DELETE CASCADE);"""
         )
@@ -72,18 +72,6 @@ class Database:
                 FOREIGN KEY (run_id) REFERENCES Runs (id) ON DELETE CASCADE);"""
         )
 
-        # # This table holds the different files found.
-        # cursor.execute(
-        #     """CREATE TABLE IF NOT EXISTS Varieties (
-        #         id INT AUTO_INCREMENT PRIMARY KEY,
-        #         resource_id INT NOT NULL,
-        #         name VARCHAR(40),
-        #         hash VARCHAR(10000),
-        #         content MEDIUMBLOB,
-        #         FOREIGN KEY (resource_id) REFERENCES Resources (id) ON DELETE CASCADE);"""
-        # )
-
-        # 'SELECT Table_name FROM information_schema.tables WHERE table_schema = "vpntfg0" AND Table_name LIKE "%Varieties%";'
         cursor.execute(
             'SELECT Table_name FROM information_schema.tables WHERE table_schema = "vpntfg0" AND Table_name LIKE "%Varieties_%" ORDER BY Table_name'
         )
@@ -315,18 +303,29 @@ class Database:
                             id INT AUTO_INCREMENT PRIMARY KEY, 
                             resource_id INT NOT NULL, 
                             name VARCHAR(40), 
-                            hash VARCHAR(10000), 
+                            hash VARCHAR({1}), 
                             content MEDIUMBLOB,
                             FOREIGN KEY (resource_id) REFERENCES Resources (id) ON DELETE CASCADE
                         );""".format(
                             current_next
+                            if current_next > 9
+                            else "0" + str(current_next),
+                            _HASH_LINE_SIZE,
                         )
                     )
 
-                    self.variety_tables.append("Varieties_{0}".format(current_next))
+                    self.variety_tables.append(
+                        "Varieties_{0}".format(
+                            current_next
+                            if current_next > 9
+                            else "0" + str(current_next)
+                        )
+                    )
                     _logger.info(
                         "Created Varieties_{0} for it is not possible to insert more rows in the previous one".format(
                             current_next
+                            if current_next > 9
+                            else "0" + str(current_next)
                         )
                     )
 
@@ -569,7 +568,6 @@ class DatabaseAdapter:
 
         result = Run(run["name"], data=list_of_resources)
         result.set_id(run["id"])
-        result.set_threshold(float(run["comparison_threshold"]))
 
         return result
 
@@ -581,7 +579,6 @@ class DatabaseAdapter:
 
         row = {
             "name": run.get_name(),
-            "comparison_threshold": run.get_threshold(),
         }
         # If this run has been creeated in domain, it will not have ID until the DB gives it to him
         an_id = run.get_id()
@@ -623,6 +620,7 @@ class DatabaseAdapter:
                     ("collection_id =", collection["id"]),
                 ]
             )
+            _logger.debug("Loading run with conditions: {0}".format(run_conditions))
             run_list = self.load_runs(
                 recursive=recursive,
                 run_conditions=run_conditions,
@@ -855,9 +853,8 @@ class DatabaseAdapter:
             raise RuntimeError(
                 "Error: run_conditions requires tuples of 2 values in every condition."
             )
-
         rows = self._db.select(
-            ["id", "name", "collection_id", "comparison_threshold"],
+            ["id", "name", "collection_id"],
             [
                 "Runs",
             ],

@@ -7,6 +7,9 @@
 import logging
 from time import time
 from json import dump as jdump
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 from config import _RESULTS_DIRECTORY, _LOG_LEVEL
 
@@ -18,9 +21,7 @@ class DataProcessor:
         self._name = "DataProcessor_%.3f" % time()
         self._db = database
 
-    def get_metadata(self):
-        """Gets metadata from the different RunCollections present in the database."""
-        pass
+    
 
     def _calc_common_files(self, collection_name):
         """Internal function that calculates common files in a collection."""
@@ -141,31 +142,53 @@ class DataProcessor:
                     jdump(aux.print(), f, indent=2)
 
                 yield aux
+    
+    def get_metadata(self, name):
+        """Gets metadata from the specified RunCollection."""
+        
+        col = None
+        try:
+            col = self._db.load_collections(recursive=False, collection_conditions=[("name =", name),], run_conditions=[] )[0]
 
-    def save_partial_result_as_collection(self, name, data):
-        """Saves partial result and returns it with DB data."""
-        col = RunCollection(name, data=data)
-        for i in range(0, len(col)):
-            aux_run = col[i]
-            aux_run.set_id(None)
-            for j in range(0, len(aux_run)):
-                aux_resource = aux_run[j]
-                aux_resource.set_id(None)
-                for k in range(0, len(aux_resource)):
-                    aux_var = aux_resource[k]
-                    aux_var.set_id(None)
-                    aux_resource[k] = aux_var
-                else:
-                    aux_run[j] = aux_resource
+            runs = self._db.load_runs(recursive=False, run_conditions=[("collection_id =", col.get_id())])
+            col.extend(runs)
 
-            else:
-                col[i] = aux_run
+            for run in col:
+                res = self._db.load_resources_major(recursive=False, resource_conditions=[("run_id =", run.get_id())])
+                run.extend(res)
 
-        self._db.save(col)
-        return self._db.load_collections(
-            recursive=True, collection_conditins=[("name =", name)]
-        )[0]
+        except:
+            raise RuntimeError("Collection %s could not be loaded from DB" % name)
+
+        min = col.min_resources_per_run()
+        max = col.max_resources_per_run()
+        avg = col.avg_resources_per_run()
+
+        return min, max, avg
+        
+    
+    def metadata_batch(self, excluded=["Result_CF_01", "Result_DF_01"]):
+        
+        conditions = [("name !=", x) for x in excluded]
+        col_list = self._db.load_collections(
+            recursive=False, collection_conditions=conditions
+        )
+        min_list = []
+        max_list = []
+        avg_list = []
+        name_list = []
+        for col in col_list:
+            _logger.info("Processing col %s" % col.get_name())
+            min, max, avg = self.get_metadata(col.get_name())
+
+            yield col.get_name(), [min, max, avg]
+
+    
 
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(_LOG_LEVEL)
+
+if __name__ == "__main__":
+    db = DatabaseAdapter()
+    dp = data_processor.DataProcessor(db)

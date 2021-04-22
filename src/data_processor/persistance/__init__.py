@@ -7,7 +7,7 @@ from sys import getsizeof
 
 from datasketch import MinHash
 
-from config import _LOG_LEVEL
+from config import _LOG_LEVEL, _MINHASH_PERM, _COMPARISON_THRESHOLD, _HASH_LINE_SIZE
 
 
 def _create_minhash(in_data):
@@ -18,7 +18,7 @@ def _create_minhash(in_data):
     """
 
     if isinstance(in_data, set):
-        a_minhash = MinHash(num_perm=256)
+        a_minhash = MinHash(num_perm=_MINHASH_PERM)
         for group in in_data:
             a_minhash.update(group)
         return a_minhash
@@ -56,7 +56,7 @@ class Resource:
 
             if isinstance(hash, list):
                 try:
-                    self.hash = MinHash(num_perm=256, hashvalues=hash)
+                    self.hash = MinHash(num_perm=_MINHASH_PERM, hashvalues=hash)
                 except ValueError:
                     _logger.error("Hash: %r" % hash)
 
@@ -72,7 +72,7 @@ class Resource:
         def get_hash_string(self):
             """Returns the hash of the vile as a string."""
             arraystr = numpy.array2string(
-                self.hash.digest(), separator=" ", max_line_width=10000
+                self.hash.digest(), separator=" ", max_line_width=_HASH_LINE_SIZE
             )
             translated_hash = list(arraystr[1:-2].split(" "))
             while "" in translated_hash:
@@ -229,15 +229,10 @@ class Resource:
             max_sim = 0
             for i in range(0, len(self.varieties)):
                 sim = self.varieties[i].hash.jaccard(target.hash)
-
                 if sim > max_sim:
                     max_sim = sim
 
-                if max_sim >= 0.99:
-                    self.varieties[i].content = target.content
-                    made_changes = True
-
-            if max_sim > Run._COMPARISON_THRESHOLD and max_sim < 0.99:
+            if max_sim >= _COMPARISON_THRESHOLD and max_sim < 1.0:
                 # It's not the same!
                 self.varieties.append(target)
                 made_changes = True
@@ -249,7 +244,7 @@ class Resource:
         similarity = self.compare(obj)
         _logger.debug("Similarity is: %f" % similarity)
         return (
-            similarity >= Run._COMPARISON_THRESHOLD
+            similarity >= _COMPARISON_THRESHOLD
             and self.get_extension() == obj.get_extension()
             and self.get_webpage() == obj.get_webpage()
         )
@@ -288,7 +283,6 @@ class Resource:
 
 class Run(list):
 
-    _COMPARISON_THRESHOLD = 0.80
     _id = None
 
     def __init__(self, name, data=None):
@@ -327,16 +321,6 @@ class Run(list):
 
         self._name = new_name
 
-    def get_threshold(self):
-        """Getter for _COMPARISON_THRESHOLD private property."""
-
-        return self._COMPARISON_THRESHOLD
-
-    def set_threshold(self, threshold):
-        """Setter for _COMPARISON_THRESHOLD private property."""
-        if not (threshold is None):
-            self._COMPARISON_THRESHOLD = threshold
-
     def __repr__(self):
         return "{0} <id: {1}, name: {2}>".format(
             self.__class__.__name__, self.get_id(), self.get_name()
@@ -368,6 +352,9 @@ class Run(list):
     def append(self, val):
         self.insert(len(self._list), val)
 
+    def extend(self, other):
+        self._list.extend(other)
+
     def __iter__(self):
         """Custom __iter__ method."""
 
@@ -396,7 +383,7 @@ class Run(list):
         index = 0
         for case in self._list:
             sim = case.compare(other)
-            if max_sim < sim and sim >= self._COMPARISON_THRESHOLD:
+            if max_sim < sim and sim >= _COMPARISON_THRESHOLD:
                 max_sim = sim
                 ret = index
             index += 1
@@ -410,14 +397,14 @@ class Run(list):
         current = int(time())
         result = Run("In_%i" % current)
 
-        for resource in self._list:
-            index = other.find_similar(resource)
+        for resource in other:
+            index = self.find_similar(resource)
             if not (index is None):
-                other[index].set_id(None, recursive=True)
-                result.append(other[index])
-                del other[index]
+                self[index].set_id(None, recursive=True)
+                joined = self[index].join(resource)
+                result.append(self[index])
             else:
-                _logger.debug("%r discarded" % resource)
+                _logger.info("%r discarded" % resource)
 
         return result
 
@@ -465,7 +452,7 @@ class Run(list):
                     % (self._list[index], res, similarity)
                 )
                 # Si similarity es 1, son el mateix i no hem de fer res
-                if similarity >= self._COMPARISON_THRESHOLD and similarity < 0.99:
+                if similarity >= _COMPARISON_THRESHOLD and similarity < 0.99:
                     _logger.info(
                         "Joining resources %r and %r" % (self._list[index], res)
                     )
@@ -499,7 +486,6 @@ class Run(list):
         res = {
             "id": self.get_id(),
             "name": self.get_name(),
-            "comparison_threshold": self._COMPARISON_THRESHOLD,
             "_resources": [],
         }
 
@@ -591,6 +577,9 @@ class RunCollection(list):
     def append(self, val):
         self.insert(len(self._list), val)
 
+    def extend(self, other):
+        self._list.extend(other)
+
     def __iter__(self):
         """Custom __iter__ method."""
 
@@ -647,14 +636,16 @@ class RunCollection(list):
                 ret = n_resources
             elif n_resources < ret:
                 ret = n_resources
+        return ret
 
     def avg_resources_per_run(self):
         suma = 0
 
         for x in self._list:
+            n_resources = len(x)
             suma += n_resources
 
-        return int(suma / len(data))
+        return int(suma / len(self._list)) if len(self._list) > 0 else 0
 
     def can_join(self, other):
         """Returns wheter the two RunCollection (self, and other) can be joined or not."""

@@ -22,7 +22,7 @@ from config import (
 from persistance.database_adapter import DatabaseAdapter
 from persistance import Resource, Run, RunCollection
 import data_processor
-
+from data_processor import plots
 
 def _usage():
     """Usage method, executed when options -h, --help are passed or when an error occurs."""
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     _logger.info("-" * 50)
 
     short_opts = "hld:p"
-    long_opts = ["help", "load", "directory=", "process"]
+    long_opts = ["help", "load", "directory=", "process", "make-plots"]
 
     try:
         opts, args = getopt(argv[1:], short_opts, long_opts)
@@ -165,15 +165,18 @@ if __name__ == "__main__":
                 _logger.error("Wrong path %s" % arg)
         elif opt in ("-p", "--process"):
             _PROCESS_DATA = True
+        elif opt in ("--make-plots"):
+            _MAKE_PLOTS = True
 
     db = DatabaseAdapter()
+    dp = data_processor.DataProcessor(db)
 
     if _LOAD_DATA:
         load_files_in_database(db)
         _logger.info("Finished loading files into DB")
 
     if _PROCESS_DATA:
-        dp = data_processor.DataProcessor(db)
+        
 
         # intersection_list = dp.common_files_batch(excluded= ["no_vpn", "Result_", "1click", "adguard", "astard", "betternet", "browsec"])
         intersection_list = dp.common_files_batch()
@@ -182,6 +185,7 @@ if __name__ == "__main__":
             int_result.append(run)
         # dp.save_partial_result_as_collection("Result_CF_01", int_result)
         _logger.info("Finished processing. Printing Results.")
+
         for run in int_result:
             beg = 1
             for res in run:
@@ -201,18 +205,29 @@ if __name__ == "__main__":
                             _logger.debug("Content is bytes already")
 
                         if not (content is None) and content != b"NotLoaded":
-                            with open(
-                                "{0}_file{1}.txt".format(
-                                    _RESULTS_DIRECTORY
-                                    + "isolated_files\\"
-                                    + run.get_name()[3:],
-                                    beg if beg > 9 else "0" + str(beg),
-                                ),
-                                "w",
-                            ) as f:
-                                f.write(content.decode())
+                            try:
+                                with open(
+                                    "{0}_file{1}.txt".format(
+                                        _RESULTS_DIRECTORY
+                                        + "isolated_files\\"
+                                        + run.get_name()[3:],
+                                        beg if beg > 9 else "0" + str(beg),
+                                    ),
+                                    "w",
+                                ) as f:
+                                    f.write(content.decode())
+                                break
+                            except UnicodeEncodeError:
+                                _logger.error(
+                                    "Cannot print contents of {0}!".format(
+                                        "{0}_file{1}.txt".format(
+                                            _RESULTS_DIRECTORY
+                                            + "isolated_files\\"
+                                            + run.get_name()[3:]
+                                        )
+                                    )
+                                )
 
-                            break
                     beg += 1
 
         _logger.info("Finding diffenrent files in all collections from no_vpn")
@@ -222,3 +237,17 @@ if __name__ == "__main__":
         for run in difference_list:
             diff_result.append(run)
         # dp.save_partial_result_as_collection("Result_DF_01", difference_list)
+    if _MAKE_PLOTS:
+        mt_list = dp.metadata_batch(())
+
+        for name, data in mt_list:
+            _logger.info(
+                "Making plot for collection {0}. Data is: {1}".format(name, data)
+            )
+            plots.make_group_bar_plot([""], data, 
+                x_title="MIN/MAX/AVG Resources per Run",
+                y_title="Nº of Resources",
+                title="Metadata for extension %s" % name,
+                path=path.join(_RESULTS_DIRECTORY, name)
+            )
+

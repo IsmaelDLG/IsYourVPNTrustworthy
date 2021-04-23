@@ -27,3 +27,10 @@ Spiders
 
 .. automodule:: src.js_crawlers.js_crawlers.spiders.myspider
    :members:
+
+.. _selenium_tag:
+
+Selenium crawler
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: src.selenium.selenium_crawler 

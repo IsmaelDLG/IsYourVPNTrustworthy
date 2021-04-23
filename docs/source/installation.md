@@ -4,6 +4,40 @@
 
 Use pipenv file to install everything!
 
+## MySQL server
+
+I have used a raspbery pi as server to setup the MySQL database. This are the steps performed. As a side note, you can use 192.168.1.% so that any computer from the network can connect to it.
+
+```
+pi@raspberrypi:~ $ sudo mysql_secure_installation
+
+pi@raspberrypi:~ $ sudo mysql -u root -p
+
+MariaDB [(none)]> CREATE DATABASE vpntfg0;
+
+MariaDB [(none)]> CREATE USER '<username>'@'<ip-addres-of-the-host-we-want-to-access-from>' IDENTIFIED BY '<passwd>';
+
+MariaDB [(none)]> GRANT ALL PRIVILEGES on vpntfg0.* TO '<username>'@'<ip-addres-of-the-host-we-want-to-access-from>' IDENTIFIED BY '<passwd>';
+
+MariaDB [(none)]> FLUSH PRIVILEGES;
+```
+
+To make the raspberry pi DB visible from the network, we have to edit the file /etc/mysql/my.cnf
+
+Replace or add this line
+
+```
+bind-address = 0.0.0.0
+```
+
+Then, reload the client.
+
+```
+sudo service mysql reload
+sudo service mysql restart
+```
+
+
 ## VPNs
 
 Some VPNs habe been used to test our hipothesis. In this section, I will explain how I installed them.
